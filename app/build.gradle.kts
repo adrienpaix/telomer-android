@@ -100,7 +100,6 @@ dependencies {
     implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
 
     // PDF viewer
-    implementation("io.github.nicholaswm:AndroidPdfViewer:3.1.0-beta.3")
 
     // Tests
     testImplementation("junit:junit:4.13.2")
