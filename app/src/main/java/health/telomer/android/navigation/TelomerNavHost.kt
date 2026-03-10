@@ -8,13 +8,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
-import health.telomer.android.feature.dashboard.DashboardScreen
+import androidx.navigation.navArgument
+import health.telomer.android.feature.appointments.AppointmentBookingScreen
 import health.telomer.android.feature.appointments.AppointmentsScreen
-import health.telomer.android.feature.nutrition.ui.journal.NutritionJournalScreen
+import health.telomer.android.feature.dashboard.DashboardScreen
+import health.telomer.android.feature.documents.DocumentsScreen
+import health.telomer.android.feature.messaging.ConversationScreen
 import health.telomer.android.feature.messaging.MessagingScreen
+import health.telomer.android.feature.nutrition.ui.journal.NutritionJournalScreen
+import health.telomer.android.feature.practitioners.PractitionersScreen
+import health.telomer.android.feature.prescriptions.PrescriptionsScreen
 import health.telomer.android.feature.profile.ProfileScreen
-import health.telomer.android.feature.healthconnect.ui.HealthConnectScreen
 
 sealed class BottomTab(val route: String, val label: String, val icon: ImageVector) {
     data object Dashboard : BottomTab("dashboard", "Accueil", Icons.Default.Home)
@@ -32,17 +38,16 @@ val tabs = listOf(
     BottomTab.Profile,
 )
 
+// Routes that should show the bottom bar
+private val bottomBarRoutes = tabs.map { it.route }.toSet()
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelomerNavHost() {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = currentBackStackEntry?.destination
-
-    // Hide bottom bar on sub-screens
-    val showBottomBar = tabs.any { tab ->
-        currentDestination?.hierarchy?.any { it.route == tab.route } == true
-    }
+    val showBottomBar = currentDestination?.route in bottomBarRoutes
 
     Scaffold(
         bottomBar = {
@@ -71,12 +76,24 @@ fun TelomerNavHost() {
             startDestination = BottomTab.Dashboard.route,
             modifier = Modifier.padding(padding),
         ) {
+            // Bottom tabs
             composable(BottomTab.Dashboard.route) { DashboardScreen(navController) }
             composable(BottomTab.Appointments.route) { AppointmentsScreen(navController) }
             composable(BottomTab.Nutrition.route) { NutritionJournalScreen(navController) }
             composable(BottomTab.Messages.route) { MessagingScreen(navController) }
             composable(BottomTab.Profile.route) { ProfileScreen(navController) }
-            composable("healthconnect") { HealthConnectScreen(navController) }
+
+            // Sub-screens
+            composable("appointment_booking") { AppointmentBookingScreen(navController) }
+            composable("documents") { DocumentsScreen(navController) }
+            composable("prescriptions") { PrescriptionsScreen(navController) }
+            composable("practitioners") { PractitionersScreen(navController) }
+            composable(
+                route = "conversation/{conversationId}",
+                arguments = listOf(navArgument("conversationId") { type = NavType.StringType }),
+            ) {
+                ConversationScreen(navController)
+            }
         }
     }
 }
