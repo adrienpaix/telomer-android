@@ -1,0 +1,4 @@
+-keep class health.telomer.android.** { *; }
+-keep class com.squareup.moshi.** { *; }
+-keepclassmembers class * { @com.squareup.moshi.Json <fields>; }
+-dontwarn org.bouncycastle.**
