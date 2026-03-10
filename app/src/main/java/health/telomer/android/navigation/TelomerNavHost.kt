@@ -7,17 +7,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.*
-import health.telomer.android.auth.AuthState
-import health.telomer.android.auth.AuthViewModel
-import health.telomer.android.auth.LoginScreen
-import health.telomer.android.feature.appointments.AppointmentsScreen
 import health.telomer.android.feature.dashboard.DashboardScreen
-import health.telomer.android.feature.messaging.MessagingScreen
+import health.telomer.android.feature.appointments.AppointmentsScreen
 import health.telomer.android.feature.nutrition.ui.journal.NutritionJournalScreen
+import health.telomer.android.feature.messaging.MessagingScreen
 import health.telomer.android.feature.profile.ProfileScreen
+import health.telomer.android.feature.healthconnect.ui.HealthConnectScreen
 
 sealed class BottomTab(val route: String, val label: String, val icon: ImageVector) {
     data object Dashboard : BottomTab("dashboard", "Accueil", Icons.Default.Home)
@@ -37,50 +34,34 @@ val tabs = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TelomerNavHost(
-    authViewModel: AuthViewModel = hiltViewModel(),
-) {
-    val authState by authViewModel.authState.collectAsState()
-
-    when (authState) {
-        is AuthState.Loading,
-        is AuthState.LoggedOut,
-        is AuthState.Error -> {
-            LoginScreen(
-                authState = authState,
-                onLogin = { activity -> authViewModel.login(activity) },
-                onClearError = { authViewModel.clearError() },
-            )
-        }
-        is AuthState.LoggedIn -> {
-            MainNavigation()
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MainNavigation() {
+fun TelomerNavHost() {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = currentBackStackEntry?.destination
 
+    // Hide bottom bar on sub-screens
+    val showBottomBar = tabs.any { tab ->
+        currentDestination?.hierarchy?.any { it.route == tab.route } == true
+    }
+
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                tabs.forEach { tab ->
-                    NavigationBarItem(
-                        selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true,
-                        onClick = {
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label, style = MaterialTheme.typography.labelSmall) },
-                    )
+            if (showBottomBar) {
+                NavigationBar {
+                    tabs.forEach { tab ->
+                        NavigationBarItem(
+                            selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true,
+                            onClick = {
+                                navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Icon(tab.icon, contentDescription = tab.label) },
+                            label = { Text(tab.label, style = MaterialTheme.typography.labelSmall) },
+                        )
+                    }
                 }
             }
         }
@@ -95,6 +76,7 @@ private fun MainNavigation() {
             composable(BottomTab.Nutrition.route) { NutritionJournalScreen(navController) }
             composable(BottomTab.Messages.route) { MessagingScreen(navController) }
             composable(BottomTab.Profile.route) { ProfileScreen(navController) }
+            composable("healthconnect") { HealthConnectScreen(navController) }
         }
     }
 }
