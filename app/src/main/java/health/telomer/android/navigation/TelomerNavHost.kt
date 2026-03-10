@@ -7,12 +7,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.*
-import health.telomer.android.feature.dashboard.DashboardScreen
+import health.telomer.android.auth.AuthState
+import health.telomer.android.auth.AuthViewModel
+import health.telomer.android.auth.LoginScreen
 import health.telomer.android.feature.appointments.AppointmentsScreen
-import health.telomer.android.feature.nutrition.ui.journal.NutritionJournalScreen
+import health.telomer.android.feature.dashboard.DashboardScreen
 import health.telomer.android.feature.messaging.MessagingScreen
+import health.telomer.android.feature.nutrition.ui.journal.NutritionJournalScreen
 import health.telomer.android.feature.profile.ProfileScreen
 
 sealed class BottomTab(val route: String, val label: String, val icon: ImageVector) {
@@ -33,7 +37,30 @@ val tabs = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TelomerNavHost() {
+fun TelomerNavHost(
+    authViewModel: AuthViewModel = hiltViewModel(),
+) {
+    val authState by authViewModel.authState.collectAsState()
+
+    when (authState) {
+        is AuthState.Loading,
+        is AuthState.LoggedOut,
+        is AuthState.Error -> {
+            LoginScreen(
+                authState = authState,
+                onLogin = { activity -> authViewModel.login(activity) },
+                onClearError = { authViewModel.clearError() },
+            )
+        }
+        is AuthState.LoggedIn -> {
+            MainNavigation()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainNavigation() {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = currentBackStackEntry?.destination

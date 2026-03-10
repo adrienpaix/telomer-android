@@ -5,8 +5,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import health.telomer.android.BuildConfig
-import health.telomer.android.auth.TokenManager
+import health.telomer.android.auth.AuthManager
 import health.telomer.android.core.data.api.TelomerApi
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -19,10 +20,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(tokenManager: TokenManager): OkHttpClient {
+    fun provideOkHttpClient(authManager: AuthManager): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor { chain ->
-                val token = tokenManager.accessToken
+                val token = runBlocking { authManager.getValidAccessToken() }
                 val request = if (token != null) {
                     chain.request().newBuilder()
                         .header("Authorization", "Bearer $token")
