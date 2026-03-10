@@ -18,6 +18,10 @@ import health.telomer.android.feature.documents.DocumentsScreen
 import health.telomer.android.feature.messaging.ConversationScreen
 import health.telomer.android.feature.messaging.MessagingScreen
 import health.telomer.android.feature.nutrition.ui.journal.NutritionJournalScreen
+import health.telomer.android.feature.nutrition.ui.camera.FoodCameraScreen
+import health.telomer.android.feature.nutrition.ui.scanner.BarcodeScannerScreen
+import health.telomer.android.feature.nutrition.ui.search.FoodSearchScreen
+import health.telomer.android.feature.nutrition.ui.goals.NutritionGoalsScreen
 import health.telomer.android.feature.practitioners.PractitionersScreen
 import health.telomer.android.feature.prescriptions.PrescriptionsScreen
 import health.telomer.android.feature.profile.ProfileScreen
@@ -83,7 +87,7 @@ fun TelomerNavHost() {
             composable(BottomTab.Messages.route) { MessagingScreen(navController) }
             composable(BottomTab.Profile.route) { ProfileScreen(navController) }
 
-            // Sub-screens
+            // Existing sub-screens
             composable("appointment_booking") { AppointmentBookingScreen(navController) }
             composable("documents") { DocumentsScreen(navController) }
             composable("prescriptions") { PrescriptionsScreen(navController) }
@@ -94,6 +98,12 @@ fun TelomerNavHost() {
             ) {
                 ConversationScreen(navController)
             }
+
+            // Nutrition sub-screens
+            composable("nutrition/camera") { FoodCameraScreen(navController) }
+            composable("nutrition/scanner") { BarcodeScannerScreen(navController) }
+            composable("nutrition/search") { FoodSearchScreen(navController) }
+            composable("nutrition/goals") { NutritionGoalsScreen(navController) }
         }
     }
 }
