@@ -7,21 +7,27 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import health.telomer.android.auth.AuthViewModel
+import health.telomer.android.auth.AuthState
+import health.telomer.android.auth.LoginScreen
 import health.telomer.android.feature.appointments.AppointmentBookingScreen
 import health.telomer.android.feature.appointments.AppointmentsScreen
 import health.telomer.android.feature.dashboard.DashboardScreen
 import health.telomer.android.feature.documents.DocumentsScreen
+import health.telomer.android.feature.healthconnect.ui.HealthConnectScreen
 import health.telomer.android.feature.messaging.ConversationScreen
 import health.telomer.android.feature.messaging.MessagingScreen
-import health.telomer.android.feature.nutrition.ui.journal.NutritionJournalScreen
 import health.telomer.android.feature.nutrition.ui.camera.FoodCameraScreen
+import health.telomer.android.feature.nutrition.ui.goals.NutritionGoalsScreen
+import health.telomer.android.feature.nutrition.ui.journal.NutritionJournalScreen
 import health.telomer.android.feature.nutrition.ui.scanner.BarcodeScannerScreen
 import health.telomer.android.feature.nutrition.ui.search.FoodSearchScreen
-import health.telomer.android.feature.nutrition.ui.goals.NutritionGoalsScreen
 import health.telomer.android.feature.practitioners.PractitionersScreen
 import health.telomer.android.feature.prescriptions.PrescriptionsScreen
 import health.telomer.android.feature.profile.ProfileScreen
@@ -34,7 +40,7 @@ sealed class BottomTab(val route: String, val label: String, val icon: ImageVect
     data object Profile : BottomTab("profile", "Profil", Icons.Default.Person)
 }
 
-val tabs = listOf(
+private val tabs = listOf(
     BottomTab.Dashboard,
     BottomTab.Appointments,
     BottomTab.Nutrition,
@@ -42,16 +48,48 @@ val tabs = listOf(
     BottomTab.Profile,
 )
 
-// Routes that should show the bottom bar
-private val bottomBarRoutes = tabs.map { it.route }.toSet()
+// Routes where bottom bar should be hidden
+private val hideBottomBarRoutes = setOf(
+    "appointment_booking", "documents", "prescriptions", "practitioners",
+    "nutrition/camera", "nutrition/scanner", "nutrition/search", "nutrition/goals",
+    "healthconnect",
+)
+
+@Composable
+fun TelomerNavHost(authViewModel: AuthViewModel = hiltViewModel()) {
+    val authState by authViewModel.authState.collectAsState()
+    val context = LocalContext.current
+
+    when (authState) {
+        is AuthState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        is AuthState.LoggedOut, is AuthState.Error -> {
+            LoginScreen(
+                onLogin = { authViewModel.login(context as android.app.Activity) },
+                isLoading = false,
+                error = (authState as? AuthState.Error)?.message,
+                onClearError = { authViewModel.clearError() },
+            )
+        }
+        is AuthState.LoggedIn -> {
+            MainNavigation()
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TelomerNavHost() {
+private fun MainNavigation() {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = currentBackStackEntry?.destination
-    val showBottomBar = currentDestination?.route in bottomBarRoutes
+    val currentRoute = currentDestination?.route ?: ""
+
+    val showBottomBar = currentRoute !in hideBottomBarRoutes &&
+        !currentRoute.startsWith("conversation/")
 
     Scaffold(
         bottomBar = {
@@ -87,16 +125,20 @@ fun TelomerNavHost() {
             composable(BottomTab.Messages.route) { MessagingScreen(navController) }
             composable(BottomTab.Profile.route) { ProfileScreen(navController) }
 
-            // Existing sub-screens
+            // Sub-screens
             composable("appointment_booking") { AppointmentBookingScreen(navController) }
             composable("documents") { DocumentsScreen(navController) }
             composable("prescriptions") { PrescriptionsScreen(navController) }
             composable("practitioners") { PractitionersScreen(navController) }
+            composable("healthconnect") { HealthConnectScreen(navController) }
+
+            // Conversation with argument
             composable(
-                route = "conversation/{conversationId}",
+                "conversation/{conversationId}",
                 arguments = listOf(navArgument("conversationId") { type = NavType.StringType }),
-            ) {
-                ConversationScreen(navController)
+            ) { backStackEntry ->
+                val conversationId = backStackEntry.arguments?.getString("conversationId") ?: return@composable
+                ConversationScreen(navController = navController, conversationId = conversationId)
             }
 
             // Nutrition sub-screens
