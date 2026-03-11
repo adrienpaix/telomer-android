@@ -1,6 +1,7 @@
 package health.telomer.android.feature.consultation
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,11 +13,6 @@ import io.livekit.android.RoomOptions
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
 import io.livekit.android.room.Room
-import io.livekit.android.room.participant.LocalParticipant
-import io.livekit.android.room.participant.Participant
-import io.livekit.android.room.participant.RemoteParticipant
-import io.livekit.android.room.track.CameraPosition
-import io.livekit.android.room.track.LocalVideoTrack
 import io.livekit.android.room.track.Track
 import io.livekit.android.room.track.VideoTrack
 import kotlinx.coroutines.Job
@@ -27,6 +23,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private const val TAG = "VideoCallVM"
 
 data class VideoCallState(
     val isConnecting: Boolean = false,
@@ -79,6 +77,7 @@ class VideoCallViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to get token", e)
                 _state.update {
                     it.copy(
                         isConnecting = false,
@@ -106,33 +105,44 @@ class VideoCallViewModel @Inject constructor(
                 )
                 room = lkRoom
 
-                // Listen to room events
+                // Listen to ALL room events for track changes
                 eventJob = viewModelScope.launch {
                     lkRoom.events.collect { event ->
+                        Log.d(TAG, "Room event: ${event::class.simpleName}")
                         when (event) {
                             is RoomEvent.ParticipantConnected -> {
-                                updateRemoteTracks(lkRoom)
+                                Log.d(TAG, "Participant connected: ${event.participant.identity}")
+                                refreshAllTracks(lkRoom)
                             }
                             is RoomEvent.ParticipantDisconnected -> {
-                                updateRemoteTracks(lkRoom)
+                                refreshAllTracks(lkRoom)
                             }
                             is RoomEvent.TrackSubscribed -> {
-                                updateRemoteTracks(lkRoom)
+                                Log.d(TAG, "Track subscribed: ${event.track.name} from ${event.participant.identity}")
+                                refreshAllTracks(lkRoom)
                             }
                             is RoomEvent.TrackUnsubscribed -> {
-                                updateRemoteTracks(lkRoom)
+                                refreshAllTracks(lkRoom)
+                            }
+                            is RoomEvent.TrackPublished -> {
+                                Log.d(TAG, "Track published: ${event.publication.name}")
+                                // Local track was published - refresh
+                                refreshAllTracks(lkRoom)
                             }
                             is RoomEvent.Reconnecting -> {
                                 _state.update { it.copy(error = "Reconnexion en cours...") }
                             }
                             is RoomEvent.Reconnected -> {
                                 _state.update { it.copy(error = null) }
+                                refreshAllTracks(lkRoom)
                             }
                             is RoomEvent.Disconnected -> {
                                 _state.update {
                                     it.copy(
                                         isConnected = false,
                                         remoteParticipantConnected = false,
+                                        remoteVideoTrack = null,
+                                        localVideoTrack = null,
                                     )
                                 }
                             }
@@ -141,20 +151,23 @@ class VideoCallViewModel @Inject constructor(
                     }
                 }
 
+                // Connect to room
                 lkRoom.connect(
                     url = url,
                     token = token,
                     options = ConnectOptions(autoSubscribe = true),
                 )
+                Log.d(TAG, "Connected to room: ${lkRoom.name}")
 
                 // Enable local audio/video
                 val localParticipant = lkRoom.localParticipant
                 localParticipant.setMicrophoneEnabled(true)
+                Log.d(TAG, "Mic enabled")
                 localParticipant.setCameraEnabled(true)
+                Log.d(TAG, "Camera enabled")
 
-                // Get local video track
-                val localVideoTrack = localParticipant.getTrackPublication(Track.Source.CAMERA)
-                    ?.track as? VideoTrack
+                // Wait a moment for tracks to be published
+                delay(500)
 
                 _state.update {
                     it.copy(
@@ -162,16 +175,24 @@ class VideoCallViewModel @Inject constructor(
                         isConnected = true,
                         isMicOn = true,
                         isCameraOn = true,
-                        localVideoTrack = localVideoTrack,
                     )
                 }
 
-                // Check for existing remote participants
-                updateRemoteTracks(lkRoom)
+                // Now refresh tracks (local + remote)
+                refreshAllTracks(lkRoom)
 
                 // Start call timer
                 startTimer()
+
+                // Poll tracks every 2s for the first 10s to catch late publications
+                launch {
+                    repeat(5) {
+                        delay(2000)
+                        refreshAllTracks(lkRoom)
+                    }
+                }
             } catch (e: Exception) {
+                Log.e(TAG, "Connection failed", e)
                 _state.update {
                     it.copy(
                         isConnecting = false,
@@ -182,17 +203,42 @@ class VideoCallViewModel @Inject constructor(
         }
     }
 
-    private fun updateRemoteTracks(lkRoom: Room) {
-        val remoteParticipants = lkRoom.remoteParticipants.values
-        val hasRemote = remoteParticipants.isNotEmpty()
-        val remoteVideoTrack = remoteParticipants.firstOrNull()
-            ?.getTrackPublication(Track.Source.CAMERA)
-            ?.track as? VideoTrack
-
-        // Also update local video track in case it changed
+    private fun refreshAllTracks(lkRoom: Room) {
+        // Local video track
         val localVideoTrack = lkRoom.localParticipant
             .getTrackPublication(Track.Source.CAMERA)
             ?.track as? VideoTrack
+
+        // Remote video track - find first remote participant with a video track
+        val remoteParticipants = lkRoom.remoteParticipants.values.toList()
+        val hasRemote = remoteParticipants.isNotEmpty()
+
+        var remoteVideoTrack: VideoTrack? = null
+        for (participant in remoteParticipants) {
+            // Try camera source first
+            val cameraTrack = participant.getTrackPublication(Track.Source.CAMERA)?.track as? VideoTrack
+            if (cameraTrack != null) {
+                remoteVideoTrack = cameraTrack
+                break
+            }
+            // Try screen share
+            val screenTrack = participant.getTrackPublication(Track.Source.SCREEN_SHARE)?.track as? VideoTrack
+            if (screenTrack != null) {
+                remoteVideoTrack = screenTrack
+                break
+            }
+            // Try any video track from track publications
+            for (pub in participant.trackPublications.values) {
+                val track = pub.track
+                if (track is VideoTrack) {
+                    remoteVideoTrack = track
+                    break
+                }
+            }
+            if (remoteVideoTrack != null) break
+        }
+
+        Log.d(TAG, "Tracks refresh: local=${localVideoTrack != null}, remote=${remoteVideoTrack != null}, remoteParticipants=${remoteParticipants.size}")
 
         _state.update {
             it.copy(
@@ -225,13 +271,12 @@ class VideoCallViewModel @Inject constructor(
         viewModelScope.launch {
             val newState = !_state.value.isCameraOn
             room?.localParticipant?.setCameraEnabled(newState)
-
+            delay(300) // Wait for track to be published/unpublished
             val localVideoTrack = if (newState) {
                 room?.localParticipant
                     ?.getTrackPublication(Track.Source.CAMERA)
                     ?.track as? VideoTrack
             } else null
-
             _state.update { it.copy(isCameraOn = newState, localVideoTrack = localVideoTrack) }
         }
     }
