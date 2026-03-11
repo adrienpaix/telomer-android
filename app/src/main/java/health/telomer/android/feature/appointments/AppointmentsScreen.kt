@@ -1,8 +1,5 @@
 package health.telomer.android.feature.appointments
 
-import android.content.Context
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,7 +12,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,7 +29,6 @@ fun AppointmentsScreen(
     viewModel: AppointmentsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
 
     Scaffold(
         floatingActionButton = {
@@ -85,7 +80,7 @@ fun AppointmentsScreen(
                                 appt = appt,
                                 isUpcoming = true,
                                 onCancel = { viewModel.cancelAppointment(appt.id) },
-                                onJoinVideo = { openConsultation(context, appt.id) },
+                                onJoinVideo = { navController.navigate("consultation/${appt.id}") },
                             )
                         }
                     }
@@ -120,19 +115,7 @@ fun AppointmentsScreen(
     }
 }
 
-private fun openConsultation(context: Context, appointmentId: String) {
-    val url = "https://app.telomer.health/appointments/$appointmentId/consultation"
-    try {
-        val customTabsIntent = CustomTabsIntent.Builder()
-            .setShowTitle(true)
-            .build()
-        customTabsIntent.launchUrl(context, Uri.parse(url))
-    } catch (_: Exception) {
-        // Fallback to regular browser
-        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))
-        context.startActivity(intent)
-    }
-}
+
 
 private fun formatScheduledAt(isoDate: String): String {
     return try {

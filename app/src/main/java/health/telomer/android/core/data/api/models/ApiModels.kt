@@ -48,8 +48,10 @@ data class DocumentResponse(
 @JsonClass(generateAdapter = true)
 data class ConsultationRoomResponse(
     @Json(name = "room_name") val roomName: String,
+    @Json(name = "livekit_url") val livekitUrl: String? = null,
     @Json(name = "doctor_token") val doctorToken: String? = null,
     @Json(name = "patient_token") val patientToken: String? = null,
+    @Json(name = "report_id") val reportId: String? = null,
 )
 
 @JsonClass(generateAdapter = true)

@@ -19,6 +19,7 @@ import health.telomer.android.auth.LoginScreen
 import health.telomer.android.feature.actionplan.ActionPlanScreen
 import health.telomer.android.feature.appointments.AppointmentBookingScreen
 import health.telomer.android.feature.appointments.AppointmentsScreen
+import health.telomer.android.feature.consultation.VideoCallScreen
 import health.telomer.android.feature.dashboard.DashboardScreen
 import health.telomer.android.feature.documents.DocumentsScreen
 import health.telomer.android.feature.healthconnect.ui.HealthConnectScreen
@@ -89,7 +90,8 @@ private fun MainNavigation() {
     val currentRoute = currentDestination?.route ?: ""
 
     val showBottomBar = currentRoute !in hideBottomBarRoutes &&
-        !currentRoute.startsWith("conversation/")
+        !currentRoute.startsWith("conversation/") &&
+        !currentRoute.startsWith("consultation/")
 
     Scaffold(
         bottomBar = {
@@ -139,6 +141,15 @@ private fun MainNavigation() {
                 arguments = listOf(navArgument("conversationId") { type = NavType.StringType }),
             ) { backStackEntry ->
                 ConversationScreen(navController = navController)
+            }
+
+            // Consultation (video call)
+            composable(
+                "consultation/{appointmentId}",
+                arguments = listOf(navArgument("appointmentId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val appointmentId = backStackEntry.arguments?.getString("appointmentId") ?: return@composable
+                VideoCallScreen(navController = navController, appointmentId = appointmentId)
             }
 
             // Nutrition sub-screens

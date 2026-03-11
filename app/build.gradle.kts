@@ -103,6 +103,10 @@ dependencies {
     // Browser (Chrome Custom Tabs)
     implementation("androidx.browser:browser:1.8.0")
 
+    // LiveKit (native video conferencing)
+    implementation("io.livekit:livekit-android:2.5.0")
+
+
     // PDF viewer
 
     // Tests
