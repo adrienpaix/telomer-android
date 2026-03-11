@@ -74,7 +74,7 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
     // Auth (AppAuth)
-    implementation("net.openid:appauth:0.11.2")
+    implementation("net.openid:appauth:0.11.1")
 
     // Room (local DB)
     implementation("androidx.room:room-runtime:2.6.1")
