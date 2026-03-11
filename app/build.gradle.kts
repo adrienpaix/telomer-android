@@ -105,6 +105,7 @@ dependencies {
 
     // LiveKit (native video conferencing)
     implementation("io.livekit:livekit-android:2.5.0")
+    implementation("io.livekit:livekit-android-compose:2.5.0")
 
 
     // PDF viewer
