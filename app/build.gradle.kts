@@ -25,6 +25,10 @@ android {
         buildConfigField("String", "KEYCLOAK_CLIENT_ID", "\"telomer-android\"")
 
         manifestPlaceholders["appAuthRedirectScheme"] = "health.telomer.android"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     buildTypes {
