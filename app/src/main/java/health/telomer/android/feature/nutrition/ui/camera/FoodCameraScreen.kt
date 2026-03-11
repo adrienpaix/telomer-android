@@ -2,20 +2,18 @@ package health.telomer.android.feature.nutrition.ui.camera
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.*
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -25,18 +23,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import health.telomer.android.core.ui.theme.*
-import health.telomer.android.feature.nutrition.engine.RecognizedFood
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,7 +110,7 @@ fun FoodCameraScreen(
                                 try {
                                     val cameraProvider = cameraProviderFuture.get()
                                     val preview = Preview.Builder().build().also {
-                                        it.setSurfaceProvider(previewView.surfaceProvider)
+                                        it.surfaceProvider = previewView.surfaceProvider
                                     }
                                     val imageCapture = ImageCapture.Builder()
                                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
@@ -122,16 +118,37 @@ fun FoodCameraScreen(
                                     viewModel.setImageCapture(imageCapture)
                                     cameraProvider.unbindAll()
                                     cameraProvider.bindToLifecycle(
-                                        ctx as LifecycleOwner,
+                                        lifecycleOwner,
                                         CameraSelector.DEFAULT_BACK_CAMERA,
                                         preview, imageCapture,
                                     )
-                                } catch (_: Exception) {}
+                                } catch (e: Exception) {
+                                    android.util.Log.e("FoodCamera", "Camera binding failed", e)
+                                }
                             }, ContextCompat.getMainExecutor(ctx))
                         }
                     },
                     modifier = Modifier.fillMaxSize(),
                 )
+
+                // Demo mode banner
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .padding(top = 100.dp),
+                    color = Color(0xFFFEF3C7),
+                    shape = RoundedCornerShape(0.dp),
+                ) {
+                    Text(
+                        text = "⚠️ Mode démo — Reconnaissance IA non activée",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        color = Color(0xFF92400E),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                    )
+                }
 
                 // Capture button
                 Box(
@@ -154,144 +171,74 @@ fun FoodCameraScreen(
                 }
             }
         } else {
-            // Results view
-            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                if (state.isAnalyzing) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = TelomerBlue)
-                            Spacer(Modifier.height(16.dp))
-                            Text("Analyse en cours…", color = TelomerGray500)
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp),
-                    ) {
-                        item {
-                            Text(
-                                "Aliments détectés",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Ajustez les quantités si nécessaire",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TelomerGray500,
-                            )
-                        }
-
-                        items(state.recognizedFoods) { food ->
-                            RecognizedFoodCard(
-                                food = food,
-                                portionG = state.portions[food.name] ?: food.estimatedPortionG,
-                                onPortionChanged = { viewModel.updatePortion(food.name, it) },
-                            )
-                        }
-                    }
-
-                    // Action buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        OutlinedButton(
-                            onClick = { viewModel.retake() },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Reprendre")
-                        }
-                        Button(
-                            onClick = { viewModel.addToMeal(); navController.popBackStack() },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = TelomerGreen),
-                        ) {
-                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Ajouter au repas")
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecognizedFoodCard(
-    food: RecognizedFood,
-    portionG: Double,
-    onPortionChanged: (Double) -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp),
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            // Photo taken — show demo result (no AI)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(food.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    Text(
-                        "Confiance : ${(food.confidence * 100).toInt()}%",
-                        fontSize = 12.sp,
-                        color = TelomerGray500,
+                if (state.isAnalyzing) {
+                    CircularProgressIndicator(color = TelomerBlue)
+                    Spacer(Modifier.height(16.dp))
+                    Text("Analyse en cours…", color = TelomerGray500)
+                } else {
+                    // Photo taken, no AI available
+                    Icon(
+                        Icons.Default.CameraAlt,
+                        contentDescription = null,
+                        tint = TelomerGreen,
+                        modifier = Modifier.size(64.dp),
                     )
-                }
-                food.estimatedCalories?.let {
+                    Spacer(Modifier.height(16.dp))
                     Text(
-                        "${it.toInt()} kcal",
+                        "📷 Photo prise !",
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = TelomerBlue,
+                        color = TelomerGray900,
                     )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "La reconnaissance automatique des aliments sera bientôt disponible.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TelomerGray500,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "En attendant, utilisez la recherche textuelle pour ajouter vos aliments.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TelomerGray500,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(32.dp))
+
+                    Button(
+                        onClick = { navController.navigate("nutrition/search") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = TelomerBlue),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Rechercher manuellement")
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    OutlinedButton(
+                        onClick = { viewModel.retake() },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Reprendre la photo")
+                    }
                 }
             }
-            Spacer(Modifier.height(12.dp))
-
-            // Macro row
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                MacroChip("P", food.estimatedProteins, TelomerGreen)
-                MacroChip("G", food.estimatedCarbs, TelomerOrange)
-                MacroChip("L", food.estimatedFats, TelomerRed)
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Portion field
-            OutlinedTextField(
-                value = portionG.toInt().toString(),
-                onValueChange = { it.toDoubleOrNull()?.let(onPortionChanged) },
-                label = { Text("Quantité (g)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
         }
-    }
-}
-
-@Composable
-private fun MacroChip(label: String, value: Double?, color: Color) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = color.copy(alpha = 0.12f),
-    ) {
-        Text(
-            "$label: ${value?.toInt() ?: "—"}g",
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            fontSize = 12.sp,
-            color = color,
-            fontWeight = FontWeight.Medium,
-        )
     }
 }

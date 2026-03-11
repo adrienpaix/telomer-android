@@ -137,3 +137,11 @@ data class ProfileUpdateRequest(
     val phone: String? = null,
     val address: String? = null,
 )
+
+@JsonClass(generateAdapter = true)
+data class ActionPlanResponse(
+    val id: String,
+    @Json(name = "patient_id") val patientId: String? = null,
+    val content: String,
+    @Json(name = "created_at") val createdAt: String,
+)

@@ -5,12 +5,15 @@ import android.content.pm.PackageManager
 import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.*
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,7 +30,6 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -35,14 +37,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import health.telomer.android.core.ui.theme.*
 import health.telomer.android.feature.nutrition.domain.model.FoodItem
-import java.util.concurrent.Executors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,25 +122,27 @@ fun BarcodeScannerScreen(
                                 try {
                                     val cameraProvider = cameraProviderFuture.get()
                                     val preview = Preview.Builder().build().also {
-                                        it.setSurfaceProvider(previewView.surfaceProvider)
+                                        it.surfaceProvider = previewView.surfaceProvider
                                     }
 
                                     val analyzer = ImageAnalysis.Builder()
                                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                         .build()
                                         .also {
-                                            it.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
+                                            it.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
                                                 processBarcode(imageProxy, viewModel)
                                             }
                                         }
 
                                     cameraProvider.unbindAll()
                                     cameraProvider.bindToLifecycle(
-                                        ctx as LifecycleOwner,
+                                        lifecycleOwner,
                                         CameraSelector.DEFAULT_BACK_CAMERA,
                                         preview, analyzer,
                                     )
-                                } catch (_: Exception) {}
+                                } catch (e: Exception) {
+                                    android.util.Log.e("BarcodeScanner", "Camera binding failed", e)
+                                }
                             }, ContextCompat.getMainExecutor(ctx))
                         }
                     },
