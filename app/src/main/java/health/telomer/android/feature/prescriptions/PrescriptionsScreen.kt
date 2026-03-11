@@ -114,16 +114,23 @@ private fun PrescriptionCard(prescription: PrescriptionResponse, onOpen: () -> U
             Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Ordonnance du ${prescription.createdAt.take(10)}",
+                    prescription.title ?: "Ordonnance du ${prescription.createdAt.take(10)}",
                     fontWeight = FontWeight.SemiBold,
                     color = TelomerGray900,
                 )
-                prescription.doctorName?.let {
+                prescription.practitionerName?.let {
                     Text("Dr $it", color = TelomerGray500, style = MaterialTheme.typography.bodySmall)
                 }
-                prescription.medications?.let {
+                prescription.practitionerSpecialty?.let {
+                    Text(it, color = TelomerGray500, style = MaterialTheme.typography.labelSmall)
+                }
+                prescription.content?.let {
                     Spacer(Modifier.height(6.dp))
-                    Text(it, color = TelomerGray900, style = MaterialTheme.typography.bodyMedium)
+                    Text(it, color = TelomerGray900, style = MaterialTheme.typography.bodyMedium, maxLines = 4)
+                }
+                if (prescription.isSigned == true) {
+                    Spacer(Modifier.height(4.dp))
+                    Text("✓ Signée", color = TelomerGreen, style = MaterialTheme.typography.labelSmall)
                 }
             }
             if (prescription.pdfUrl != null) {

@@ -110,12 +110,7 @@ fun DocumentsScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         items(state.documents, key = { it.id }) { doc ->
-                            DocumentCard(doc) {
-                                doc.fileUrl?.let { url ->
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                    context.startActivity(intent)
-                                }
-                            }
+                            DocumentCard(doc)
                         }
                     }
                 }
@@ -125,7 +120,7 @@ fun DocumentsScreen(
 }
 
 @Composable
-private fun DocumentCard(doc: DocumentResponse, onClick: () -> Unit) {
+private fun DocumentCard(doc: DocumentResponse) {
     val icon = when (doc.fileType?.lowercase()) {
         "pdf" -> Icons.Default.PictureAsPdf
         "jpg", "jpeg", "png", "image" -> Icons.Default.Image
@@ -138,7 +133,7 @@ private fun DocumentCard(doc: DocumentResponse, onClick: () -> Unit) {
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(containerColor = TelomerWhite),
@@ -150,13 +145,24 @@ private fun DocumentCard(doc: DocumentResponse, onClick: () -> Unit) {
             Icon(icon, null, tint = iconTint, modifier = Modifier.size(28.dp))
             Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(doc.filename, fontWeight = FontWeight.SemiBold, color = TelomerGray900)
+                Text(doc.fileName, fontWeight = FontWeight.SemiBold, color = TelomerGray900)
                 val date = doc.documentDate ?: doc.uploadedAt
                 date?.let {
                     Text(it.take(10), color = TelomerGray500, style = MaterialTheme.typography.bodySmall)
                 }
                 doc.fileType?.let {
                     Text(it.uppercase(), color = TelomerBlue, style = MaterialTheme.typography.labelSmall)
+                }
+                doc.documentType?.let {
+                    Text(it, color = TelomerGray500, style = MaterialTheme.typography.labelSmall)
+                }
+                doc.fileSizeBytes?.let { bytes ->
+                    val sizeStr = when {
+                        bytes < 1024 -> "$bytes B"
+                        bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+                        else -> "${"%.1f".format(bytes / (1024.0 * 1024.0))} MB"
+                    }
+                    Text(sizeStr, color = TelomerGray500, style = MaterialTheme.typography.labelSmall)
                 }
             }
             Icon(Icons.Default.ChevronRight, null, tint = TelomerGray500)

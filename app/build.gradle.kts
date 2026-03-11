@@ -100,6 +100,9 @@ dependencies {
     // Health Connect
     implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
 
+    // Browser (Chrome Custom Tabs)
+    implementation("androidx.browser:browser:1.8.0")
+
     // PDF viewer
 
     // Tests

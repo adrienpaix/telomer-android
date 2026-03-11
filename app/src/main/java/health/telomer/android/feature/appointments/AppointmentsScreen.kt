@@ -1,5 +1,8 @@
 package health.telomer.android.feature.appointments
 
+import android.content.Context
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,6 +15,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -29,6 +33,7 @@ fun AppointmentsScreen(
     viewModel: AppointmentsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         floatingActionButton = {
@@ -76,7 +81,12 @@ fun AppointmentsScreen(
                             )
                         }
                         items(state.upcoming, key = { it.id }) { appt ->
-                            AppointmentCard(appt, isUpcoming = true, onCancel = { viewModel.cancelAppointment(appt.id) })
+                            AppointmentCard(
+                                appt = appt,
+                                isUpcoming = true,
+                                onCancel = { viewModel.cancelAppointment(appt.id) },
+                                onJoinVideo = { openConsultation(context, appt.id) },
+                            )
                         }
                     }
                     if (state.past.isNotEmpty()) {
@@ -90,7 +100,7 @@ fun AppointmentsScreen(
                             )
                         }
                         items(state.past, key = { it.id }) { appt ->
-                            AppointmentCard(appt, isUpcoming = false, onCancel = null)
+                            AppointmentCard(appt = appt, isUpcoming = false, onCancel = null, onJoinVideo = null)
                         }
                     }
                     if (state.upcoming.isEmpty() && state.past.isEmpty()) {
@@ -110,6 +120,20 @@ fun AppointmentsScreen(
     }
 }
 
+private fun openConsultation(context: Context, appointmentId: String) {
+    val url = "https://app.telomer.health/appointments/$appointmentId/consultation"
+    try {
+        val customTabsIntent = CustomTabsIntent.Builder()
+            .setShowTitle(true)
+            .build()
+        customTabsIntent.launchUrl(context, Uri.parse(url))
+    } catch (_: Exception) {
+        // Fallback to regular browser
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))
+        context.startActivity(intent)
+    }
+}
+
 private fun formatScheduledAt(isoDate: String): String {
     return try {
         val zdt = ZonedDateTime.parse(isoDate)
@@ -120,13 +144,17 @@ private fun formatScheduledAt(isoDate: String): String {
     }
 }
 
+private val joinableStatuses = setOf("upcoming", "patient_waiting", "in_progress", "confirmed", "à venir")
+
 @Composable
 private fun AppointmentCard(
     appt: AppointmentResponse,
     isUpcoming: Boolean,
     onCancel: (() -> Unit)?,
+    onJoinVideo: (() -> Unit)?,
 ) {
     var showCancelDialog by remember { mutableStateOf(false) }
+    val canJoin = isUpcoming && appt.status?.lowercase() in joinableStatuses
 
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -157,13 +185,31 @@ private fun AppointmentCard(
                 Spacer(Modifier.height(6.dp))
                 Text(it, color = TelomerBlue, style = MaterialTheme.typography.bodySmall)
             }
-            if (isUpcoming && onCancel != null) {
+            if (canJoin || (isUpcoming && onCancel != null)) {
                 Spacer(Modifier.height(8.dp))
-                TextButton(
-                    onClick = { showCancelDialog = true },
-                    colors = ButtonDefaults.textButtonColors(contentColor = TelomerRed),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Annuler")
+                    if (canJoin && onJoinVideo != null) {
+                        Button(
+                            onClick = onJoinVideo,
+                            colors = ButtonDefaults.buttonColors(containerColor = TelomerGreen),
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(Icons.Default.Videocam, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Rejoindre")
+                        }
+                    }
+                    if (isUpcoming && onCancel != null) {
+                        TextButton(
+                            onClick = { showCancelDialog = true },
+                            colors = ButtonDefaults.textButtonColors(contentColor = TelomerRed),
+                        ) {
+                            Text("Annuler")
+                        }
+                    }
                 }
             }
         }
@@ -194,6 +240,8 @@ private fun StatusPill(status: String) {
         "cancelled", "annulé" -> "Annulé" to TelomerRed
         "pending", "en attente" -> "En attente" to TelomerOrange
         "completed", "terminé" -> "Terminé" to TelomerGray500
+        "patient_waiting" -> "En attente" to TelomerOrange
+        "in_progress" -> "En cours" to TelomerGreen
         else -> status to TelomerGray500
     }
     Surface(

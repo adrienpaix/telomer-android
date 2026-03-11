@@ -125,6 +125,22 @@ fun DashboardScreen(
 
                 Spacer(Modifier.height(12.dp))
 
+                // Action Plan card
+                DashboardCard(
+                    icon = Icons.Default.Checklist,
+                    title = "Mon plan d'action",
+                    onClick = { navController.navigate("action-plan") },
+                ) {
+                    Text(
+                        "Suivez vos objectifs santé",
+                        color = TelomerGreen,
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+
                 // Questionnaire card
                 DashboardCard(
                     icon = Icons.Default.Assignment,
@@ -169,6 +185,19 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f),
                         onClick = { navController.navigate("prescriptions") },
                     )
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    QuickActionButton(
+                        icon = Icons.Default.Checklist,
+                        label = "Plan\nd'action",
+                        modifier = Modifier.weight(1f),
+                        onClick = { navController.navigate("action-plan") },
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.weight(1f))
                 }
 
                 Spacer(Modifier.height(32.dp))

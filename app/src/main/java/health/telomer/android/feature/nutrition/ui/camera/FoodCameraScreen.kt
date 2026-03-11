@@ -1,7 +1,11 @@
 package health.telomer.android.feature.nutrition.ui.camera
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.view.ViewGroup
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -29,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavController
 import health.telomer.android.core.ui.theme.*
 import health.telomer.android.feature.nutrition.engine.RecognizedFood
@@ -42,6 +47,25 @@ fun FoodCameraScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Camera permission handling
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasCameraPermission = isGranted
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -58,7 +82,22 @@ fun FoodCameraScreen(
             )
         },
     ) { padding ->
-        if (state.capturedBitmap == null) {
+        if (!hasCameraPermission) {
+            // Permission denied state
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.CameraAlt, null, tint = TelomerGray500, modifier = Modifier.size(64.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Text("Permission caméra requise", color = TelomerGray900, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Autorisez l'accès à la caméra pour photographier vos repas", color = TelomerGray500)
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                        Text("Autoriser la caméra")
+                    }
+                }
+            }
+        } else if (state.capturedBitmap == null) {
             // Camera preview
             Box(modifier = Modifier.fillMaxSize()) {
                 AndroidView(
@@ -72,18 +111,19 @@ fun FoodCameraScreen(
                         }.also { previewView ->
                             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                             cameraProviderFuture.addListener({
-                                val cameraProvider = cameraProviderFuture.get()
-                                val preview = Preview.Builder().build().also {
-                                    it.surfaceProvider = previewView.surfaceProvider
-                                }
-                                val imageCapture = ImageCapture.Builder()
-                                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                                    .build()
-                                viewModel.setImageCapture(imageCapture)
                                 try {
+                                    val cameraProvider = cameraProviderFuture.get()
+                                    val preview = Preview.Builder().build().also {
+                                        it.setSurfaceProvider(previewView.surfaceProvider)
+                                    }
+                                    val imageCapture = ImageCapture.Builder()
+                                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                                        .build()
+                                    viewModel.setImageCapture(imageCapture)
                                     cameraProvider.unbindAll()
                                     cameraProvider.bindToLifecycle(
-                                        lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA,
+                                        ctx as LifecycleOwner,
+                                        CameraSelector.DEFAULT_BACK_CAMERA,
                                         preview, imageCapture,
                                     )
                                 } catch (_: Exception) {}

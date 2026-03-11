@@ -20,6 +20,10 @@ interface TelomerApi {
     @DELETE("appointments/{id}")
     suspend fun cancelAppointment(@Path("id") id: String)
 
+    // ── Consultation Room (LiveKit) ──
+    @POST("consultations/room/{appointmentId}")
+    suspend fun createConsultationRoom(@Path("appointmentId") appointmentId: String): ConsultationRoomResponse
+
     // ── Practitioners & Availability ──
     @GET("practitioners")
     suspend fun getPractitioners(): List<PractitionerResponse>

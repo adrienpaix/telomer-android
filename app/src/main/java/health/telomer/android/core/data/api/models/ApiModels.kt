@@ -21,20 +21,35 @@ data class AppointmentResponse(
 @JsonClass(generateAdapter = true)
 data class PrescriptionResponse(
     val id: String,
+    @Json(name = "practitioner_id") val practitionerId: String? = null,
+    @Json(name = "patient_id") val patientId: String? = null,
+    val title: String? = null,
+    val content: String? = null,
+    val medications: List<Any>? = null,
     @Json(name = "created_at") val createdAt: String,
-    val medications: String? = null,
-    @Json(name = "doctor_name") val doctorName: String? = null,
+    @Json(name = "is_signed") val isSigned: Boolean? = null,
     @Json(name = "pdf_url") val pdfUrl: String? = null,
+    @Json(name = "practitioner_name") val practitionerName: String? = null,
+    @Json(name = "practitioner_specialty") val practitionerSpecialty: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
 data class DocumentResponse(
     val id: String,
-    val filename: String,
-    @Json(name = "uploaded_at") val uploadedAt: String? = null,
-    @Json(name = "document_date") val documentDate: String? = null,
+    @Json(name = "file_name") val fileName: String,
     @Json(name = "file_type") val fileType: String? = null,
-    @Json(name = "file_url") val fileUrl: String? = null,
+    @Json(name = "file_size_bytes") val fileSizeBytes: Long? = null,
+    @Json(name = "document_type") val documentType: String? = null,
+    val description: String? = null,
+    @Json(name = "document_date") val documentDate: String? = null,
+    @Json(name = "uploaded_at") val uploadedAt: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class ConsultationRoomResponse(
+    @Json(name = "room_name") val roomName: String,
+    @Json(name = "doctor_token") val doctorToken: String? = null,
+    @Json(name = "patient_token") val patientToken: String? = null,
 )
 
 @JsonClass(generateAdapter = true)

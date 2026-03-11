@@ -1,6 +1,10 @@
 package health.telomer.android.feature.nutrition.ui.scanner
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.view.ViewGroup
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -31,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavController
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -49,6 +54,25 @@ fun BarcodeScannerScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    // Camera permission handling
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasCameraPermission = isGranted
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -66,7 +90,22 @@ fun BarcodeScannerScreen(
             )
         },
     ) { padding ->
-        if (state.scannedFood == null) {
+        if (!hasCameraPermission) {
+            // Permission denied state
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.QrCodeScanner, null, tint = TelomerGray500, modifier = Modifier.size(64.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Text("Permission caméra requise", color = TelomerGray900, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Autorisez l'accès à la caméra pour scanner les codes-barres", color = TelomerGray500)
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                        Text("Autoriser la caméra")
+                    }
+                }
+            }
+        } else if (state.scannedFood == null) {
             // Scanner view
             Box(modifier = Modifier.fillMaxSize()) {
                 AndroidView(
@@ -79,24 +118,25 @@ fun BarcodeScannerScreen(
                         }.also { previewView ->
                             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                             cameraProviderFuture.addListener({
-                                val cameraProvider = cameraProviderFuture.get()
-                                val preview = Preview.Builder().build().also {
-                                    it.surfaceProvider = previewView.surfaceProvider
-                                }
-
-                                val analyzer = ImageAnalysis.Builder()
-                                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                    .build()
-                                    .also {
-                                        it.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
-                                            processBarcode(imageProxy, viewModel)
-                                        }
+                                try {
+                                    val cameraProvider = cameraProviderFuture.get()
+                                    val preview = Preview.Builder().build().also {
+                                        it.setSurfaceProvider(previewView.surfaceProvider)
                                     }
 
-                                try {
+                                    val analyzer = ImageAnalysis.Builder()
+                                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                        .build()
+                                        .also {
+                                            it.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
+                                                processBarcode(imageProxy, viewModel)
+                                            }
+                                        }
+
                                     cameraProvider.unbindAll()
                                     cameraProvider.bindToLifecycle(
-                                        lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA,
+                                        ctx as LifecycleOwner,
+                                        CameraSelector.DEFAULT_BACK_CAMERA,
                                         preview, analyzer,
                                     )
                                 } catch (_: Exception) {}

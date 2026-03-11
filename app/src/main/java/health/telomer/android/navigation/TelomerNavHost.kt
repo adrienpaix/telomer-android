@@ -16,6 +16,7 @@ import androidx.navigation.navArgument
 import health.telomer.android.auth.AuthViewModel
 import health.telomer.android.auth.AuthState
 import health.telomer.android.auth.LoginScreen
+import health.telomer.android.feature.actionplan.ActionPlanScreen
 import health.telomer.android.feature.appointments.AppointmentBookingScreen
 import health.telomer.android.feature.appointments.AppointmentsScreen
 import health.telomer.android.feature.dashboard.DashboardScreen
@@ -52,7 +53,7 @@ private val tabs = listOf(
 private val hideBottomBarRoutes = setOf(
     "appointment_booking", "documents", "prescriptions", "practitioners",
     "nutrition/camera", "nutrition/scanner", "nutrition/search", "nutrition/goals",
-    "healthconnect",
+    "healthconnect", "action-plan",
 )
 
 @Composable
@@ -130,6 +131,7 @@ private fun MainNavigation() {
             composable("prescriptions") { PrescriptionsScreen(navController) }
             composable("practitioners") { PractitionersScreen(navController) }
             composable("healthconnect") { HealthConnectScreen(navController) }
+            composable("action-plan") { ActionPlanScreen(navController) }
 
             // Conversation with argument
             composable(

@@ -9,6 +9,7 @@ import health.telomer.android.feature.nutrition.domain.repository.NutritionRepos
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.net.SocketTimeoutException
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -47,7 +48,11 @@ class FoodSearchViewModel @Inject constructor(
                         _state.update { it.copy(results = results, isLoading = false) }
                     }
                     .onFailure { e ->
-                        _state.update { it.copy(error = e.message, isLoading = false) }
+                        val message = when (e) {
+                            is SocketTimeoutException -> "La recherche prend plus de temps que prévu. Réessayez."
+                            else -> e.message ?: "Erreur inconnue"
+                        }
+                        _state.update { it.copy(error = message, isLoading = false, results = emptyList()) }
                     }
             }
             .launchIn(viewModelScope)
@@ -86,7 +91,11 @@ class FoodSearchViewModel @Inject constructor(
             ).onSuccess {
                 _state.update { it.copy(addedSuccessfully = true, isLoading = false, selectedFood = null) }
             }.onFailure { e ->
-                _state.update { it.copy(error = e.message, isLoading = false) }
+                val message = when (e) {
+                    is SocketTimeoutException -> "La requête a pris trop de temps. Réessayez."
+                    else -> e.message ?: "Erreur inconnue"
+                }
+                _state.update { it.copy(error = message, isLoading = false) }
             }
         }
     }
