@@ -31,8 +31,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import io.livekit.android.renderer.TextureViewRenderer
 import io.livekit.android.room.track.VideoTrack
-import org.webrtc.EglBase
-import org.webrtc.RendererCommon
+import livekit.org.webrtc.EglBase
+import livekit.org.webrtc.RendererCommon
 
 @Composable
 fun VideoCallScreen(
