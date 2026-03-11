@@ -7,7 +7,7 @@
 APP_HOME=$( cd "${APP_HOME:-./}" > /dev/null && pwd -P ) || exit
 
 # Default JVM options
-DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+DEFAULT_JVM_OPTS='-Xmx64m -Xms64m'
 
 # Gradle wrapper jar
 CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar

@@ -68,9 +68,8 @@ fun TelomerNavHost(authViewModel: AuthViewModel = hiltViewModel()) {
         }
         is AuthState.LoggedOut, is AuthState.Error -> {
             LoginScreen(
-                onLogin = { authViewModel.login(context as android.app.Activity) },
-                isLoading = false,
-                error = (authState as? AuthState.Error)?.message,
+                authState = authState,
+                onLogin = { activity -> authViewModel.login(activity) },
                 onClearError = { authViewModel.clearError() },
             )
         }
@@ -137,8 +136,7 @@ private fun MainNavigation() {
                 "conversation/{conversationId}",
                 arguments = listOf(navArgument("conversationId") { type = NavType.StringType }),
             ) { backStackEntry ->
-                val conversationId = backStackEntry.arguments?.getString("conversationId") ?: return@composable
-                ConversationScreen(navController = navController, conversationId = conversationId)
+                ConversationScreen(navController = navController)
             }
 
             // Nutrition sub-screens

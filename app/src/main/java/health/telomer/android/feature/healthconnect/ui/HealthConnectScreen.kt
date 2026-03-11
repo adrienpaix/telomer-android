@@ -30,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import health.telomer.android.core.ui.theme.*
 import health.telomer.android.feature.healthconnect.data.HealthConnectAvailability
+import androidx.health.connect.client.PermissionController
 import health.telomer.android.feature.healthconnect.data.HealthConnectManager
 import health.telomer.android.feature.healthconnect.domain.HealthMetric
 import health.telomer.android.feature.healthconnect.domain.MetricType
@@ -48,8 +49,8 @@ fun HealthConnectScreen(
     val context = LocalContext.current
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = viewModel.let { HealthConnectManager.permissionContract() },
-    ) { granted ->
+        contract = PermissionController.createRequestPermissionResultContract(),
+    ) { granted: Set<String> ->
         viewModel.onPermissionsResult(granted)
     }
 
