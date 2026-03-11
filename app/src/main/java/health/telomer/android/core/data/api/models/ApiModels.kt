@@ -6,13 +6,16 @@ import com.squareup.moshi.JsonClass
 @JsonClass(generateAdapter = true)
 data class AppointmentResponse(
     val id: String,
-    val date: String,
+    @Json(name = "scheduled_at") val scheduledAt: String,
     val type: String? = null,
     val status: String? = null,
-    @Json(name = "doctor_name") val doctorName: String? = null,
-    @Json(name = "doctor_first_name") val doctorFirstName: String? = null,
-    @Json(name = "doctor_last_name") val doctorLastName: String? = null,
-    @Json(name = "doctor_specialty") val doctorSpecialty: String? = null,
+    @Json(name = "doctor_id") val doctorId: String? = null,
+    @Json(name = "patient_id") val patientId: String? = null,
+    @Json(name = "duration_min") val durationMin: Int? = 30,
+    @Json(name = "practitioner_name") val practitionerName: String? = null,
+    @Json(name = "patient_name") val patientName: String? = null,
+    @Json(name = "meet_link") val meetLink: String? = null,
+    val notes: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -39,29 +42,46 @@ data class MessageResponse(
     val id: String,
     val content: String,
     @Json(name = "sender_id") val senderId: String,
+    @Json(name = "recipient_id") val recipientId: String? = null,
     @Json(name = "created_at") val createdAt: String,
     @Json(name = "is_read") val isRead: Boolean? = null,
     @Json(name = "sender_name") val senderName: String? = null,
+    val subject: String? = null,
+    @Json(name = "attachment_url") val attachmentUrl: String? = null,
+    @Json(name = "attachment_name") val attachmentName: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
 data class ConversationResponse(
-    val id: String,
-    @Json(name = "practitioner_id") val practitionerId: String,
-    @Json(name = "practitioner_name") val practitionerName: String? = null,
+    @Json(name = "user_id") val userId: String,
+    @Json(name = "user_name") val userName: String,
     @Json(name = "last_message") val lastMessage: String? = null,
-    @Json(name = "last_message_at") val lastMessageAt: String? = null,
+    @Json(name = "last_at") val lastAt: String? = null,
     @Json(name = "unread_count") val unreadCount: Int = 0,
 )
 
 @JsonClass(generateAdapter = true)
+data class RecipientResponse(
+    val id: String,
+    val name: String,
+    val role: String,
+    val email: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
 data class PractitionerResponse(
+    val id: String? = null,
     @Json(name = "user_id") val userId: String,
     @Json(name = "first_name") val firstName: String,
     @Json(name = "last_name") val lastName: String,
-    val specialties: List<String>? = null,
+    val specialty: String? = null,
     @Json(name = "photo_url") val photoUrl: String? = null,
-    val bio: String? = null,
+    @Json(name = "bio_presentation") val bioPresentation: String? = null,
+    @Json(name = "bio_experience") val bioExperience: String? = null,
+    @Json(name = "bio_formation") val bioFormation: String? = null,
+    @Json(name = "learned_societies") val learnedSocieties: String? = null,
+    @Json(name = "consultation_price") val consultationPrice: Double? = null,
+    @Json(name = "is_active") val isActive: Boolean? = true,
 )
 
 @JsonClass(generateAdapter = true)
@@ -76,31 +96,23 @@ data class PatientProfile(
 )
 
 @JsonClass(generateAdapter = true)
-data class AvailableSlot(
+data class DayAvailability(
     val date: String,
-    val time: String,
-    @Json(name = "practitioner_id") val practitionerId: String? = null,
+    val slots: List<String>,
 )
 
 @JsonClass(generateAdapter = true)
 data class BookAppointmentRequest(
-    @Json(name = "practitioner_id") val practitionerId: String,
-    val date: String,
-    val time: String,
-    val type: String = "consultation",
+    @Json(name = "practitioner_profile_id") val practitionerProfileId: String,
+    @Json(name = "scheduled_at") val scheduledAt: String,
+    val type: String = "initial",
+    @Json(name = "duration_min") val durationMin: Int = 30,
 )
 
 @JsonClass(generateAdapter = true)
 data class SendMessageRequest(
-    @Json(name = "conversation_id") val conversationId: String,
     val content: String,
-)
-
-@JsonClass(generateAdapter = true)
-data class DashboardSummary(
-    @Json(name = "next_appointment") val nextAppointment: AppointmentResponse? = null,
-    @Json(name = "unread_messages") val unreadMessages: Int = 0,
-    @Json(name = "questionnaire_status") val questionnaireStatus: String? = null,
+    val subject: String? = null,
 )
 
 @JsonClass(generateAdapter = true)

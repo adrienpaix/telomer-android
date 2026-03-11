@@ -76,9 +76,9 @@ fun MessagingScreen(
                         )
                         Spacer(Modifier.height(12.dp))
                     }
-                    items(state.conversations, key = { it.id }) { conv ->
+                    items(state.conversations, key = { it.userId }) { conv ->
                         ConversationListItem(conv) {
-                            navController.navigate("conversation/${conv.id}")
+                            navController.navigate("conversation/${conv.userId}")
                         }
                     }
                 }
@@ -108,7 +108,7 @@ private fun ConversationListItem(conv: ConversationResponse, onClick: () -> Unit
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    conv.practitionerName ?: "Praticien",
+                    conv.userName,
                     fontWeight = FontWeight.SemiBold,
                     color = TelomerGray900,
                 )
@@ -123,7 +123,7 @@ private fun ConversationListItem(conv: ConversationResponse, onClick: () -> Unit
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
-                conv.lastMessageAt?.let {
+                conv.lastAt?.let {
                     Text(it.take(10), style = MaterialTheme.typography.labelSmall, color = TelomerGray500)
                 }
                 if (conv.unreadCount > 0) {

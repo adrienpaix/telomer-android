@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import health.telomer.android.core.data.api.models.AvailableSlot
+import health.telomer.android.core.data.api.models.DayAvailability
 import health.telomer.android.core.data.api.models.PractitionerResponse
 import health.telomer.android.core.ui.theme.*
 
@@ -93,7 +93,7 @@ fun AppointmentBookingScreen(
                         )
                     }
 
-                    // Step 2: Choose slot
+                    // Step 2: Choose slot from availability
                     if (state.selectedPractitioner != null) {
                         item {
                             Spacer(Modifier.height(8.dp))
@@ -104,28 +104,27 @@ fun AppointmentBookingScreen(
                                 color = TelomerGray900,
                             )
                         }
-                        if (state.slots.isEmpty()) {
+                        if (state.availability.isEmpty()) {
                             item {
                                 Text("Aucun créneau disponible", color = TelomerGray500)
                             }
                         } else {
-                            // Group slots by date
-                            val grouped = state.slots.groupBy { it.date }
-                            grouped.forEach { (date, slots) ->
+                            state.availability.forEach { day ->
                                 item {
                                     Text(
-                                        date,
+                                        day.date,
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.SemiBold,
                                         color = TelomerGray900,
                                     )
                                     Spacer(Modifier.height(8.dp))
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        items(slots) { slot ->
+                                        items(day.slots) { time ->
+                                            val isSelected = state.selectedDate == day.date && state.selectedTime == time
                                             SlotChip(
-                                                slot = slot,
-                                                isSelected = state.selectedSlot == slot,
-                                                onClick = { viewModel.selectSlot(slot) },
+                                                time = time,
+                                                isSelected = isSelected,
+                                                onClick = { viewModel.selectSlot(day.date, time) },
                                             )
                                         }
                                     }
@@ -135,7 +134,7 @@ fun AppointmentBookingScreen(
                     }
 
                     // Step 3: Confirm
-                    if (state.selectedSlot != null) {
+                    if (state.selectedDate != null && state.selectedTime != null) {
                         item {
                             Spacer(Modifier.height(16.dp))
                             Button(
@@ -203,7 +202,7 @@ private fun PractitionerSelectionCard(
                     fontWeight = FontWeight.SemiBold,
                     color = TelomerGray900,
                 )
-                practitioner.specialties?.joinToString(", ")?.let {
+                practitioner.specialty?.let {
                     Text(it, color = TelomerGray500, style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -215,7 +214,7 @@ private fun PractitionerSelectionCard(
 }
 
 @Composable
-private fun SlotChip(slot: AvailableSlot, isSelected: Boolean, onClick: () -> Unit) {
+private fun SlotChip(time: String, isSelected: Boolean, onClick: () -> Unit) {
     Surface(
         modifier = Modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
@@ -223,7 +222,7 @@ private fun SlotChip(slot: AvailableSlot, isSelected: Boolean, onClick: () -> Un
         border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) TelomerBlue else TelomerGray100),
     ) {
         Text(
-            text = slot.time,
+            text = time,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
             color = if (isSelected) TelomerWhite else TelomerGray900,
             style = MaterialTheme.typography.bodyMedium,

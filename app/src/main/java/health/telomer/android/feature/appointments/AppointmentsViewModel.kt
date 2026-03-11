@@ -36,10 +36,10 @@ class AppointmentsViewModel @Inject constructor(
                 val now = java.time.Instant.now().toString()
                 _uiState.value = AppointmentsUiState(
                     isLoading = false,
-                    upcoming = all.filter { (it.date >= now || it.status == "upcoming" || it.status == "confirmed") && it.status != "cancelled" }
-                        .sortedBy { it.date },
-                    past = all.filter { it.date < now && it.status != "upcoming" && it.status != "confirmed" || it.status == "cancelled" }
-                        .sortedByDescending { it.date },
+                    upcoming = all.filter { (it.scheduledAt >= now || it.status == "upcoming" || it.status == "confirmed") && it.status != "cancelled" }
+                        .sortedBy { it.scheduledAt },
+                    past = all.filter { it.scheduledAt < now && it.status != "upcoming" && it.status != "confirmed" || it.status == "cancelled" }
+                        .sortedByDescending { it.scheduledAt },
                 )
             } catch (e: Exception) {
                 _uiState.value = AppointmentsUiState(isLoading = false, error = e.message)

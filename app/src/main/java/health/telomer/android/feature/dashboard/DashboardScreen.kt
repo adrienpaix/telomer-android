@@ -20,6 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import health.telomer.android.core.ui.theme.*
 import java.time.LocalDate
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -84,16 +85,21 @@ fun DashboardScreen(
                 ) {
                     val appt = state.nextAppointment
                     if (appt != null) {
+                        val formatted = try {
+                            val zdt = ZonedDateTime.parse(appt.scheduledAt)
+                            val formatter = DateTimeFormatter.ofPattern("EEEE d MMMM 'à' HH:mm", Locale.FRENCH)
+                            zdt.format(formatter).replaceFirstChar { it.uppercase() }
+                        } catch (_: Exception) {
+                            appt.scheduledAt.replace("T", " ").take(16)
+                        }
                         Text(
-                            text = appt.date,
+                            text = formatted,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = TelomerGray900,
                         )
-                        val doctorName = appt.doctorName
-                            ?: listOfNotNull(appt.doctorFirstName, appt.doctorLastName).joinToString(" ")
-                        if (doctorName.isNotBlank()) {
-                            Text("Dr $doctorName", color = TelomerGray500, style = MaterialTheme.typography.bodyMedium)
+                        appt.practitionerName?.let { name ->
+                            Text("Dr $name", color = TelomerGray500, style = MaterialTheme.typography.bodyMedium)
                         }
                         appt.type?.let { Text(it, color = TelomerBlue, style = MaterialTheme.typography.bodySmall) }
                     } else {

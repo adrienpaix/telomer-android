@@ -49,6 +49,21 @@ data class NutritionGoalDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class DayTotalsDto(
+    @Json(name = "calories_kcal") val caloriesKcal: Double = 0.0,
+    @Json(name = "proteins_g") val proteinsG: Double = 0.0,
+    @Json(name = "carbs_g") val carbsG: Double = 0.0,
+    @Json(name = "fats_g") val fatsG: Double = 0.0,
+)
+
+@JsonClass(generateAdapter = true)
+data class MealLogDayResponseDto(
+    val date: String,
+    val meals: List<MealLogDto>,
+    val totals: DayTotalsDto? = null,
+)
+
+@JsonClass(generateAdapter = true)
 data class DailySummaryDto(
     val date: String,
     @Json(name = "total_calories") val totalCalories: Double,
@@ -67,34 +82,59 @@ data class AddMealItemRequest(
 )
 
 @JsonClass(generateAdapter = true)
+data class CreateMealRequest(
+    val date: String,
+    @Json(name = "meal_type") val mealType: String,
+    val items: List<MealItemInput>? = null,
+    val notes: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class MealItemInput(
+    @Json(name = "food_item_id") val foodItemId: String,
+    @Json(name = "quantity_g") val quantityG: Double,
+)
+
+@JsonClass(generateAdapter = true)
 data class FoodSearchResponse(
     val results: List<FoodItemDto>,
+)
+
+@JsonClass(generateAdapter = true)
+data class NutritionSummaryDto(
+    val date: String,
+    @Json(name = "total_calories") val totalCalories: Double = 0.0,
+    @Json(name = "total_proteins") val totalProteins: Double = 0.0,
+    @Json(name = "total_carbs") val totalCarbs: Double = 0.0,
+    @Json(name = "total_fats") val totalFats: Double = 0.0,
+    @Json(name = "meal_count") val mealCount: Int = 0,
+    val goal: NutritionGoalDto? = null,
 )
 
 // ── Retrofit Interface ──────────────────────────────────
 
 interface NutritionApi {
 
-    @GET("me/nutrition/daily/{date}")
-    suspend fun getDailySummary(@Path("date") date: String): DailySummaryDto
+    @GET("me/nutrition/meals")
+    suspend fun getMeals(@Query("date") date: String): MealLogDayResponseDto
+
+    @POST("me/nutrition/meals")
+    suspend fun createMeal(@Body request: CreateMealRequest): MealLogDto
+
+    @PUT("me/nutrition/meals/{mealId}")
+    suspend fun updateMeal(@Path("mealId") mealId: String, @Body request: CreateMealRequest): MealLogDto
+
+    @DELETE("me/nutrition/meals/{mealId}")
+    suspend fun deleteMeal(@Path("mealId") mealId: String)
+
+    @GET("me/nutrition/summary")
+    suspend fun getSummary(@Query("date") date: String): NutritionSummaryDto
 
     @GET("me/nutrition/food/search")
     suspend fun searchFood(@Query("q") query: String): FoodSearchResponse
 
     @GET("me/nutrition/food/barcode/{ean}")
     suspend fun getFoodByBarcode(@Path("ean") ean: String): FoodItemDto
-
-    @POST("me/nutrition/meals/{date}")
-    suspend fun addMealItem(
-        @Path("date") date: String,
-        @Body request: AddMealItemRequest,
-    ): MealLogItemDto
-
-    @DELETE("me/nutrition/meals/items/{itemId}")
-    suspend fun deleteMealItem(@Path("itemId") itemId: String)
-
-    @DELETE("me/nutrition/meals/{mealId}")
-    suspend fun deleteMeal(@Path("mealId") mealId: String)
 
     @GET("me/nutrition/goals")
     suspend fun getGoals(): NutritionGoalDto

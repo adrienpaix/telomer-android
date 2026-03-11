@@ -141,7 +141,7 @@ private fun PractitionerCard(practitioner: PractitionerResponse, onClick: () -> 
                     fontWeight = FontWeight.SemiBold,
                     color = TelomerGray900,
                 )
-                practitioner.specialties?.joinToString(", ")?.let {
+                practitioner.specialty?.let {
                     Text(it, color = TelomerGray500, style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -209,14 +209,27 @@ private fun PractitionerDetailScreen(
                 fontWeight = FontWeight.Bold,
                 color = TelomerGray900,
             )
-            practitioner.specialties?.joinToString(", ")?.let {
+            practitioner.specialty?.let {
                 Spacer(Modifier.height(4.dp))
                 Text(it, color = TelomerBlue, style = MaterialTheme.typography.bodyMedium)
             }
 
+            practitioner.consultationPrice?.let { price ->
+                Spacer(Modifier.height(4.dp))
+                Text("${price.toInt()} €", color = TelomerGray500, style = MaterialTheme.typography.bodyMedium)
+            }
+
             Spacer(Modifier.height(24.dp))
 
-            practitioner.bio?.let { bio ->
+            // Bio sections
+            val bioSections = listOfNotNull(
+                practitioner.bioPresentation?.let { "Présentation" to it },
+                practitioner.bioExperience?.let { "Expérience" to it },
+                practitioner.bioFormation?.let { "Formation" to it },
+                practitioner.learnedSocieties?.let { "Sociétés savantes" to it },
+            )
+
+            bioSections.forEach { (title, content) ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -224,13 +237,15 @@ private fun PractitionerDetailScreen(
                     colors = CardDefaults.cardColors(containerColor = TelomerWhite),
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Biographie", fontWeight = FontWeight.SemiBold, color = TelomerGray900)
+                        Text(title, fontWeight = FontWeight.SemiBold, color = TelomerGray900)
                         Spacer(Modifier.height(8.dp))
-                        Text(bio, color = TelomerGray500, style = MaterialTheme.typography.bodyMedium)
+                        Text(content, color = TelomerGray500, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(12.dp))
             }
+
+            Spacer(Modifier.height(12.dp))
 
             Button(
                 onClick = onBookAppointment,

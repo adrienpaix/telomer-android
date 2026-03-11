@@ -10,28 +10,32 @@ import retrofit2.http.*
  */
 interface TelomerApi {
 
-    // ── Dashboard ──
-    @GET("me/dashboard")
-    suspend fun getDashboard(): DashboardSummary
-
     // ── Appointments ──
     @GET("appointments/mine")
     suspend fun getMyAppointments(): List<AppointmentResponse>
 
-    @POST("appointments")
+    @POST("appointments/book")
     suspend fun bookAppointment(@Body request: BookAppointmentRequest): AppointmentResponse
 
     @DELETE("appointments/{id}")
     suspend fun cancelAppointment(@Path("id") id: String)
 
-    @GET("practitioners/{id}/slots")
-    suspend fun getAvailableSlots(
-        @Path("id") practitionerId: String,
-        @Query("date") date: String? = null,
-    ): List<AvailableSlot>
+    // ── Practitioners & Availability ──
+    @GET("practitioners")
+    suspend fun getPractitioners(): List<PractitionerResponse>
 
-    // ── Prescriptions ──
-    @GET("me/prescriptions")
+    @GET("practitioners/{id}")
+    suspend fun getPractitioner(@Path("id") id: String): PractitionerResponse
+
+    @GET("practitioners/{id}/availability")
+    suspend fun getAvailability(
+        @Path("id") practitionerId: String,
+        @Query("from") fromDate: String? = null,
+        @Query("to") toDate: String? = null,
+    ): List<DayAvailability>
+
+    // ── Prescriptions (patient) ──
+    @GET("patient/prescriptions")
     suspend fun getMyPrescriptions(): List<PrescriptionResponse>
 
     // ── Documents ──
@@ -43,28 +47,27 @@ interface TelomerApi {
     suspend fun uploadDocument(@Part file: MultipartBody.Part): DocumentResponse
 
     // ── Profile ──
-    @GET("me/profile")
+    @GET("me/patient-profile")
     suspend fun getMyProfile(): PatientProfile
 
-    @PATCH("me/profile")
+    @PUT("me/patient-profile")
     suspend fun updateProfile(@Body request: ProfileUpdateRequest): PatientProfile
 
     // ── Messages ──
     @GET("messages/conversations")
     suspend fun getConversations(): List<ConversationResponse>
 
-    @GET("messages/conversations/{id}")
-    suspend fun getConversationMessages(
-        @Path("id") conversationId: String,
+    @GET("messages/recipients")
+    suspend fun getRecipients(): List<RecipientResponse>
+
+    @GET("messages/{userId}")
+    suspend fun getMessages(
+        @Path("userId") userId: String,
     ): List<MessageResponse>
 
-    @POST("messages")
-    suspend fun sendMessage(@Body request: SendMessageRequest): MessageResponse
-
-    // ── Practitioners ──
-    @GET("practitioners")
-    suspend fun getPractitioners(): List<PractitionerResponse>
-
-    @GET("practitioners/{id}")
-    suspend fun getPractitioner(@Path("id") id: String): PractitionerResponse
+    @POST("messages/{userId}")
+    suspend fun sendMessage(
+        @Path("userId") userId: String,
+        @Body request: SendMessageRequest,
+    ): MessageResponse
 }

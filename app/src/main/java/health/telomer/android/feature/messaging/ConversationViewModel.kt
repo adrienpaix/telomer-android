@@ -26,7 +26,7 @@ class ConversationViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    val conversationId: String = savedStateHandle["conversationId"] ?: ""
+    val recipientId: String = savedStateHandle["conversationId"] ?: ""
 
     private val _uiState = MutableStateFlow(ConversationUiState())
     val uiState: StateFlow<ConversationUiState> = _uiState.asStateFlow()
@@ -37,7 +37,7 @@ class ConversationViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val messages = api.getConversationMessages(conversationId)
+                val messages = api.getMessages(recipientId)
                 _uiState.value = ConversationUiState(isLoading = false, messages = messages)
             } catch (e: Exception) {
                 _uiState.value = ConversationUiState(isLoading = false, error = e.message)
@@ -50,7 +50,7 @@ class ConversationViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isSending = true)
         viewModelScope.launch {
             try {
-                api.sendMessage(SendMessageRequest(conversationId = conversationId, content = content))
+                api.sendMessage(recipientId, SendMessageRequest(content = content))
                 load()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSending = false, error = "Erreur d'envoi: ${e.message}")

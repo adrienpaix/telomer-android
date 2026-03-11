@@ -1,6 +1,7 @@
 package health.telomer.android.feature.nutrition.data.repository
 
-import health.telomer.android.feature.nutrition.data.api.AddMealItemRequest
+import health.telomer.android.feature.nutrition.data.api.CreateMealRequest
+import health.telomer.android.feature.nutrition.data.api.MealItemInput
 import health.telomer.android.feature.nutrition.data.api.NutritionApi
 import health.telomer.android.feature.nutrition.data.mapper.*
 import health.telomer.android.feature.nutrition.domain.model.*
@@ -14,7 +15,16 @@ class NutritionRepositoryImpl @Inject constructor(
 ) : NutritionRepository {
 
     override suspend fun getDailySummary(date: String): Result<DailySummary> = runCatching {
-        api.getDailySummary(date).toDomain()
+        val response = api.getMeals(date)
+        DailySummary(
+            date = response.date,
+            totalCalories = response.totals?.caloriesKcal ?: 0.0,
+            totalProteins = response.totals?.proteinsG ?: 0.0,
+            totalCarbs = response.totals?.carbsG ?: 0.0,
+            totalFats = response.totals?.fatsG ?: 0.0,
+            meals = response.meals.map { it.toDomain() },
+            goal = null,
+        )
     }
 
     override suspend fun searchFood(query: String): Result<List<FoodItem>> = runCatching {
@@ -28,11 +38,20 @@ class NutritionRepositoryImpl @Inject constructor(
     override suspend fun addMealItem(
         date: String, mealType: MealType, foodItemId: String, quantityG: Double,
     ): Result<MealLogItem> = runCatching {
-        api.addMealItem(date, AddMealItemRequest(foodItemId, quantityG, mealType.name)).toDomain()
+        val meal = api.createMeal(
+            CreateMealRequest(
+                date = date,
+                mealType = mealType.name,
+                items = listOf(MealItemInput(foodItemId = foodItemId, quantityG = quantityG)),
+            )
+        )
+        // Return the first item from the created meal
+        meal.items.first().toDomain()
     }
 
     override suspend fun deleteMealItem(mealItemId: String): Result<Unit> = runCatching {
-        api.deleteMealItem(mealItemId)
+        // The backend doesn't have a delete-item endpoint, delete the whole meal
+        api.deleteMeal(mealItemId)
     }
 
     override suspend fun deleteMeal(mealId: String): Result<Unit> = runCatching {

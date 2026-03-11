@@ -18,6 +18,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import health.telomer.android.core.data.api.models.AppointmentResponse
 import health.telomer.android.core.ui.theme.*
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,6 +110,16 @@ fun AppointmentsScreen(
     }
 }
 
+private fun formatScheduledAt(isoDate: String): String {
+    return try {
+        val zdt = ZonedDateTime.parse(isoDate)
+        val formatter = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy 'à' HH:mm", Locale.FRENCH)
+        zdt.format(formatter).replaceFirstChar { it.uppercase() }
+    } catch (_: Exception) {
+        isoDate.replace("T", " ").take(16)
+    }
+}
+
 @Composable
 private fun AppointmentCard(
     appt: AppointmentResponse,
@@ -124,18 +137,16 @@ private fun AppointmentCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        appt.date,
+                        formatScheduledAt(appt.scheduledAt),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = TelomerGray900,
                     )
-                    val doctorName = appt.doctorName
-                        ?: listOfNotNull(appt.doctorFirstName, appt.doctorLastName).joinToString(" ")
-                    if (doctorName.isNotBlank()) {
-                        Text("Dr $doctorName", color = TelomerGray500, style = MaterialTheme.typography.bodyMedium)
+                    appt.practitionerName?.let { name ->
+                        Text("Dr $name", color = TelomerGray500, style = MaterialTheme.typography.bodyMedium)
                     }
-                    appt.doctorSpecialty?.let {
-                        Text(it, color = TelomerGray500, style = MaterialTheme.typography.bodySmall)
+                    appt.durationMin?.let { dur ->
+                        Text("$dur min", color = TelomerGray500, style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 appt.status?.let { status ->

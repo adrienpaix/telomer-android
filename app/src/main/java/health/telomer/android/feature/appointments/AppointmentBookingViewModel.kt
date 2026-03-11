@@ -9,14 +9,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 data class BookingUiState(
     val isLoading: Boolean = true,
     val practitioners: List<PractitionerResponse> = emptyList(),
     val selectedPractitioner: PractitionerResponse? = null,
-    val slots: List<AvailableSlot> = emptyList(),
-    val selectedSlot: AvailableSlot? = null,
+    val availability: List<DayAvailability> = emptyList(),
+    val selectedDate: String? = null,
+    val selectedTime: String? = null,
     val isBooking: Boolean = false,
     val bookingConfirmed: Boolean = false,
     val error: String? = null,
@@ -44,34 +47,40 @@ class AppointmentBookingViewModel @Inject constructor(
     fun selectPractitioner(practitioner: PractitionerResponse) {
         _uiState.value = _uiState.value.copy(
             selectedPractitioner = practitioner,
-            selectedSlot = null,
-            slots = emptyList(),
+            selectedDate = null,
+            selectedTime = null,
+            availability = emptyList(),
         )
         viewModelScope.launch {
             try {
-                val slots = api.getAvailableSlots(practitioner.userId)
-                _uiState.value = _uiState.value.copy(slots = slots)
+                // Use practitioner profile id for availability
+                val practId = practitioner.id ?: practitioner.userId
+                val fromDate = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                val availability = api.getAvailability(practId, fromDate = fromDate)
+                _uiState.value = _uiState.value.copy(availability = availability)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Impossible de charger les créneaux: ${e.message}")
             }
         }
     }
 
-    fun selectSlot(slot: AvailableSlot) {
-        _uiState.value = _uiState.value.copy(selectedSlot = slot, error = null)
+    fun selectSlot(date: String, time: String) {
+        _uiState.value = _uiState.value.copy(selectedDate = date, selectedTime = time, error = null)
     }
 
     fun confirmBooking() {
         val practitioner = _uiState.value.selectedPractitioner ?: return
-        val slot = _uiState.value.selectedSlot ?: return
+        val date = _uiState.value.selectedDate ?: return
+        val time = _uiState.value.selectedTime ?: return
         _uiState.value = _uiState.value.copy(isBooking = true, error = null)
         viewModelScope.launch {
             try {
+                val scheduledAt = "${date}T${time}:00Z"
+                val practId = practitioner.id ?: practitioner.userId
                 api.bookAppointment(
                     BookAppointmentRequest(
-                        practitionerId = practitioner.userId,
-                        date = slot.date,
-                        time = slot.time,
+                        practitionerProfileId = practId,
+                        scheduledAt = scheduledAt,
                     )
                 )
                 _uiState.value = _uiState.value.copy(isBooking = false, bookingConfirmed = true)
