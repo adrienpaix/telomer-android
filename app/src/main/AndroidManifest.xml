@@ -49,10 +49,14 @@
             </intent-filter>
         </activity>
 
-        <!-- Health Connect intent filter -->
-        <intent-filter>
-            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
-        </intent-filter>
+        <!-- Health Connect permissions rationale activity -->
+        <activity
+            android:name=".HealthConnectPermissionsRationale"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
 
     </application>
 
