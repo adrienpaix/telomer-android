@@ -71,10 +71,11 @@ interface TelomerApi {
 
     @POST("messages/{userId}")
     suspend fun sendMessage(
-n    // ── Action Plans ──
-    @GET("me/action-plans")
-    suspend fun getMyActionPlans(): List<health.telomer.android.core.data.api.models.ActionPlanResponse>
         @Path("userId") userId: String,
         @Body request: SendMessageRequest,
     ): MessageResponse
+
+    // ── Action Plans ──
+    @GET("me/action-plans")
+    suspend fun getMyActionPlans(): List<ActionPlanResponse>
 }
