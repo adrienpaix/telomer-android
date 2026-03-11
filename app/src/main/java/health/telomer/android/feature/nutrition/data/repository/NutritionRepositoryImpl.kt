@@ -28,7 +28,7 @@ class NutritionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun searchFood(query: String): Result<List<FoodItem>> = runCatching {
-        api.searchFood(query).results.map { it.toDomain() }
+        api.searchFood(query).items.map { it.toDomain() }
     }
 
     override suspend fun getFoodByBarcode(ean: String): Result<FoodItem> = runCatching {

@@ -97,7 +97,8 @@ data class MealItemInput(
 
 @JsonClass(generateAdapter = true)
 data class FoodSearchResponse(
-    val results: List<FoodItemDto>,
+    val items: List<FoodItemDto> = emptyList(),
+    val count: Int = 0,
 )
 
 @JsonClass(generateAdapter = true)
