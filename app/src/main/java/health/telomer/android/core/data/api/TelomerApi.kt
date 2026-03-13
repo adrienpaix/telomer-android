@@ -75,6 +75,16 @@ interface TelomerApi {
         @Body request: SendMessageRequest,
     ): MessageResponse
 
+    // ── Health OS ──
+    @GET("health-os/me/dashboard/summary")
+    suspend fun getHealthOSDashboard(): HealthOSDashboardResponse
+
+    @GET("health-os/me/pillars/{pillarCode}")
+    suspend fun getHealthOSPillar(@Path("pillarCode") pillarCode: String): PillarDetailResponse
+
+    @GET("health-os/me/biomarkers/latest")
+    suspend fun getHealthOSBiomarkers(): BiomarkersLatestResponse
+
     // ── Action Plans ──
     @GET("me/action-plans")
     suspend fun getMyActionPlans(): List<ActionPlanResponse>

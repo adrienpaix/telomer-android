@@ -18,7 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.graphics.Brush
 import health.telomer.android.core.ui.theme.*
+import health.telomer.android.feature.healthos.ScoreCircle
 import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -76,6 +78,40 @@ fun DashboardScreen(
                 Text(today, style = MaterialTheme.typography.bodyMedium, color = TelomerGray500)
 
                 Spacer(Modifier.height(24.dp))
+
+                // ── Health OS Score Card ──
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { navController.navigate("healthos") },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = TelomerNavy),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ScoreCircle(score = state.healthOSScore, size = 72.dp, strokeWidth = 8.dp)
+                        Spacer(Modifier.width(16.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                Mon Bilan Santé,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                Score global,
+                                color = Color(0xFF94A3B8),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF94A3B8))
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
 
                 // Next appointment card
                 DashboardCard(

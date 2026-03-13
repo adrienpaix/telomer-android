@@ -18,6 +18,7 @@ data class DashboardUiState(
     val unreadMessages: Int = 0,
     val questionnaireStatus: String? = null,
     val error: String? = null,
+    val healthOSScore: Int? = null,
 )
 
 @HiltViewModel
@@ -47,12 +48,15 @@ class DashboardViewModel @Inject constructor(
 
                 val unread = conversations.sumOf { it.unreadCount }
 
+                val healthOSScore = try { api.getHealthOSDashboard().globalScore } catch (_: Exception) { null }
+
                 _uiState.value = DashboardUiState(
                     isLoading = false,
                     firstName = profile.firstName,
                     nextAppointment = nextAppt,
                     unreadMessages = unread,
                     questionnaireStatus = null,
+                    healthOSScore = healthOSScore,
                 )
             } catch (e: Exception) {
                 _uiState.value = DashboardUiState(

@@ -21,6 +21,7 @@ import health.telomer.android.feature.appointments.AppointmentBookingScreen
 import health.telomer.android.feature.appointments.AppointmentsScreen
 import health.telomer.android.feature.consultation.VideoCallScreen
 import health.telomer.android.feature.dashboard.DashboardScreen
+import health.telomer.android.feature.healthos.HealthOSScreen
 import health.telomer.android.feature.documents.DocumentsScreen
 import health.telomer.android.feature.healthconnect.ui.HealthConnectScreen
 import health.telomer.android.feature.messaging.ConversationScreen
@@ -37,7 +38,7 @@ import health.telomer.android.feature.profile.ProfileScreen
 sealed class BottomTab(val route: String, val label: String, val icon: ImageVector) {
     data object Dashboard : BottomTab("dashboard", "Accueil", Icons.Default.Home)
     data object Appointments : BottomTab("appointments", "RDV", Icons.Default.CalendarMonth)
-    data object Nutrition : BottomTab("nutrition", "Nutrition", Icons.Default.Restaurant)
+    data object HealthOS : BottomTab("healthos", "Mon Bilan", Icons.Default.Insights)
     data object Messages : BottomTab("messages", "Messages", Icons.Default.Email)
     data object Profile : BottomTab("profile", "Profil", Icons.Default.Person)
 }
@@ -45,7 +46,7 @@ sealed class BottomTab(val route: String, val label: String, val icon: ImageVect
 private val tabs = listOf(
     BottomTab.Dashboard,
     BottomTab.Appointments,
-    BottomTab.Nutrition,
+    BottomTab.HealthOS,
     BottomTab.Messages,
     BottomTab.Profile,
 )
@@ -54,7 +55,7 @@ private val tabs = listOf(
 private val hideBottomBarRoutes = setOf(
     "appointment_booking", "documents", "prescriptions", "practitioners",
     "nutrition/camera", "nutrition/scanner", "nutrition/search", "nutrition/goals",
-    "healthconnect", "action-plan",
+    "healthconnect", "action-plan", "nutrition",
 )
 
 @Composable
@@ -123,7 +124,7 @@ private fun MainNavigation() {
             // Bottom tabs
             composable(BottomTab.Dashboard.route) { DashboardScreen(navController) }
             composable(BottomTab.Appointments.route) { AppointmentsScreen(navController) }
-            composable(BottomTab.Nutrition.route) { NutritionJournalScreen(navController) }
+            composable(BottomTab.HealthOS.route) { HealthOSScreen(navController) }
             composable(BottomTab.Messages.route) { MessagingScreen(navController) }
             composable(BottomTab.Profile.route) { ProfileScreen(navController) }
 
@@ -134,6 +135,7 @@ private fun MainNavigation() {
             composable("practitioners") { PractitionersScreen(navController) }
             composable("healthconnect") { HealthConnectScreen(navController) }
             composable("action-plan") { ActionPlanScreen(navController) }
+            composable("nutrition") { NutritionJournalScreen(navController) }
 
             // Conversation with argument
             composable(
