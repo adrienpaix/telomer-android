@@ -67,7 +67,7 @@ fun ScoreCircle(score: Int?, size: Dp = 120.dp, strokeWidth: Dp = 12.dp) {
     val color = when {
         score == null -> TelomerGray500
         score >= 70 -> TelomerGreen
-        score >= 45 -> TelomerOrange
+        score >= 45 -> TelomerAmber
         else -> TelomerRed
     }
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(size)) {
@@ -100,30 +100,6 @@ fun ScoreCircle(score: Int?, size: Dp = 120.dp, strokeWidth: Dp = 12.dp) {
     }
 }
 
-// ── Confidence Badge ──
-
-@Composable
-private fun ConfidenceBadge(confidence: String?) {
-    val (label, color) = when (confidence) {
-        "high" -> "Confiance haute" to TelomerGreen
-        "moderate" -> "Confiance modérée" to TelomerOrange
-        "low" -> "Confiance basse" to TelomerRed
-        else -> "—" to TelomerGray500
-    }
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = color.copy(alpha = 0.15f),
-    ) {
-        Text(
-            label,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            color = color,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
-
 // ── Status Badge (for metrics) ──
 
 @Composable
@@ -131,7 +107,7 @@ private fun StatusBadge(status: String?) {
     val (label, color) = when (status) {
         "optimal" -> "Optimal" to TelomerGreen
         "watch" -> "À surveiller" to Color(0xFFF59E0B)
-        "alert" -> "Alerte" to TelomerOrange
+        "alert" -> "Alerte" to TelomerAmber
         "critical" -> "Critique" to TelomerRed
         else -> (status ?: "—") to TelomerGray500
     }
@@ -216,25 +192,6 @@ private fun PillarCard(
                     modifier = Modifier.padding(bottom = 2.dp),
                 )
             }
-            // Completeness bar
-            pillar.completenessPct?.let { pct ->
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { pct / 100f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = config.color.copy(alpha = 0.7f),
-                    trackColor = config.color.copy(alpha = 0.15f),
-                )
-                Text(
-                    "${pct}% complet",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TelomerGray500,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
         }
     }
 }
@@ -253,7 +210,7 @@ private fun InflammationBar(inflammation: InflammationResponse?) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Whatshot, null, tint = TelomerOrange, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Whatshot, null, tint = TelomerAmber, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "Inflammation",
@@ -270,7 +227,7 @@ private fun InflammationBar(inflammation: InflammationResponse?) {
                 }
                 val levelColor = when (inflammation.level) {
                     "low" -> TelomerGreen
-                    "moderate" -> TelomerOrange
+                    "moderate" -> TelomerAmber
                     "high" -> TelomerRed
                     else -> TelomerGray500
                 }
@@ -316,7 +273,7 @@ private fun InflammationBar(inflammation: InflammationResponse?) {
                         .background(
                             when {
                                 index <= 30 -> TelomerGreen
-                                index <= 60 -> TelomerOrange
+                                index <= 60 -> TelomerAmber
                                 else -> TelomerRed
                             }
                         )
@@ -390,39 +347,8 @@ private fun PillarDetailSheet(
                             fontWeight = FontWeight.Bold,
                             color = TelomerGray900,
                         )
-                        ConfidenceBadge(pillarDetail.confidence)
                     }
                     ScoreCircle(score = pillarDetail.score, size = 72.dp, strokeWidth = 8.dp)
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                // Completeness
-                pillarDetail.completenessPct?.let { pct ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Complétude du bilan",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TelomerGray500,
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Text(
-                            "${pct}%",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = config.color,
-                        )
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    LinearProgressIndicator(
-                        progress = { pct / 100f },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = config.color,
-                        trackColor = config.color.copy(alpha = 0.12f),
-                    )
                 }
 
                 Spacer(Modifier.height(20.dp))
@@ -439,38 +365,6 @@ private fun PillarDetailSheet(
                     pillarDetail.metrics.forEach { metric ->
                         MetricRow(metric)
                         Spacer(Modifier.height(8.dp))
-                    }
-                }
-
-                // Missing metrics
-                if (pillarDetail.missingMetrics.isNotEmpty()) {
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        "Données manquantes",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = TelomerGray500,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    pillarDetail.missingMetrics.forEach { code ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Default.HelpOutline, null,
-                                tint = TelomerGray500.copy(alpha = 0.5f),
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                code.replace("_", " ").replaceFirstChar { it.uppercase() },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TelomerGray500,
-                            )
-                        }
                     }
                 }
             }
@@ -605,8 +499,6 @@ fun HealthOSScreen(
                                     )
                                     Spacer(Modifier.width(20.dp))
                                     Column {
-                                        ConfidenceBadge(dashboard.globalConfidence)
-                                        Spacer(Modifier.height(8.dp))
                                         dashboard.computedAt?.let { ts ->
                                             val date = ts.take(10)
                                             Text(

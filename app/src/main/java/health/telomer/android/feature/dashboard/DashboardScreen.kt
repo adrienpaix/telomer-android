@@ -13,6 +13,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -95,14 +96,14 @@ fun DashboardScreen(
                         Spacer(Modifier.width(16.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                Mon Bilan Santé,
+                                "Mon Bilan Santé",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleMedium,
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                Score global,
+                                "Score global",
                                 color = Color(0xFF94A3B8),
                                 style = MaterialTheme.typography.bodySmall,
                             )
