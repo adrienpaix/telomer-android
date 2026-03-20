@@ -87,6 +87,13 @@ fun HealthConnectScreen(
         viewModel.onPermissionsResult(granted)
     }
 
+    // Lancer automatiquement la demande de permissions dès que Health Connect est disponible
+    LaunchedEffect(state.availability, state.permissionsGranted) {
+        if (state.availability == HealthConnectAvailability.AVAILABLE && !state.permissionsGranted) {
+            permissionLauncher.launch(HealthConnectManager.PERMISSIONS)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()

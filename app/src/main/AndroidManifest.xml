@@ -36,6 +36,11 @@
         android:theme="@style/Theme.TelomerHealth"
         tools:targetApi="35">
 
+        <!-- Health Connect : URL politique de confidentialité (obligatoire pour apparaître dans HC) -->
+        <meta-data
+            android:name="health_permissions_privacy_policy_url"
+            android:value="https://www.telomer.fr/confidentialite" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
