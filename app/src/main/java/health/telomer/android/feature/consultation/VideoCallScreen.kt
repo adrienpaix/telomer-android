@@ -129,29 +129,20 @@ private fun VideoTrackRenderer(
     mirror: Boolean = false,
 ) {
     val eglBase = remember { EglBase.create() }
+    val rendererRef = remember { mutableStateOf<TextureViewRenderer?>(null) }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(videoTrack) {
+        val renderer = rendererRef.value
+        if (renderer != null && videoTrack != null) {
+            videoTrack.addRenderer(renderer)
+        }
         onDispose {
-            eglBase.release()
+            if (renderer != null && videoTrack != null) {
+                videoTrack.removeRenderer(renderer)
+            }
+            if (videoTrack == null) eglBase.release()
         }
     }
-
-    AndroidView(
-        factory = { ctx ->
-            TextureViewRenderer(ctx).apply {
-                init(eglBase.eglBaseContext, null)
-                setMirror(mirror)
-                setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-            }
-        },
-        modifier = modifier,
-        update = { renderer ->
-            renderer.setMirror(mirror)
-        },
-    )
-
-    // Attach/detach track from renderer using a side effect
-    val rendererRef = remember { mutableStateOf<TextureViewRenderer?>(null) }
 
     AndroidView(
         factory = { ctx ->
@@ -164,22 +155,8 @@ private fun VideoTrackRenderer(
             }
         },
         modifier = modifier,
-        update = { renderer ->
-            renderer.setMirror(mirror)
-        },
+        update = { renderer -> renderer.setMirror(mirror) },
     )
-
-    DisposableEffect(videoTrack) {
-        val renderer = rendererRef.value
-        if (renderer != null && videoTrack != null) {
-            videoTrack.addRenderer(renderer)
-        }
-        onDispose {
-            if (renderer != null && videoTrack != null) {
-                videoTrack.removeRenderer(renderer)
-            }
-        }
-    }
 }
 
 @Composable
