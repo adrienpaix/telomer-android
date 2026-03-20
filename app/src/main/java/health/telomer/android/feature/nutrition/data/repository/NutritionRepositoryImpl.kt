@@ -17,15 +17,15 @@ class NutritionRepositoryImpl @Inject constructor(
         val summary = runCatching { api.getSummary(date) }.getOrNull()
 
         // Group items by meal_type to build MealLog list
-        val mealsByType = items.groupBy { it.mealType ?: SNACK }
+        val mealsByType = items.groupBy { it.mealType ?: "snack" }
         val meals = mealsByType.map { (type, logItems) ->
             MealLog(
                 id = logItems.first().id,
                 date = date,
                 mealType = when (type.uppercase()) {
-                    BREAKFAST -> MealType.BREAKFAST
-                    LUNCH -> MealType.LUNCH
-                    DINNER -> MealType.DINNER
+                    "BREAKFAST" -> MealType.BREAKFAST
+                    "LUNCH" -> MealType.LUNCH
+                    "DINNER" -> MealType.DINNER
                     else -> MealType.SNACK
                 },
                 items = logItems.map { it.toMealLogItem() },
@@ -60,7 +60,7 @@ class NutritionRepositoryImpl @Inject constructor(
                 foodName = foodItemId,
                 mealType = mealType.name,
                 quantityG = quantityG,
-                source = manual,
+                source = "manual",
             )
         )
         item.toMealLogItem()
