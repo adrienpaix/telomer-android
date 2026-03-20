@@ -26,16 +26,16 @@ class DashboardScreenTest {
         composeTestRule.setContent {
             TelomerTheme {
                 NavigationBar {
-                    listOf(Accueil, Bilan, Nutrition, Plan, Plus).forEachIndexed { index, label ->
+                    listOf("Accueil", "Bilan", "Nutrition", "Plan", "Plus").forEachIndexed { index, label ->
                         NavigationBarItem(
                             selected = index == 0,
                             onClick = {},
                             icon = {
                                 when (label) {
-                                    Accueil -> Icon(Icons.Default.Home, contentDescription = label)
-                                    Bilan -> Icon(Icons.Default.Insights, contentDescription = label)
-                                    Nutrition -> Icon(Icons.Default.Restaurant, contentDescription = label)
-                                    Plan -> Icon(Icons.Default.CheckCircle, contentDescription = label)
+                                    "Accueil" -> Icon(Icons.Default.Home, contentDescription = label)
+                                    "Bilan" -> Icon(Icons.Default.Insights, contentDescription = label)
+                                    "Nutrition" -> Icon(Icons.Default.Restaurant, contentDescription = label)
+                                    "Plan" -> Icon(Icons.Default.CheckCircle, contentDescription = label)
                                     else -> Icon(Icons.Default.Menu, contentDescription = label)
                                 }
                             },
@@ -46,11 +46,11 @@ class DashboardScreenTest {
             }
         }
         // Vérifier que les 5 tabs de navigation sont présents
-        composeTestRule.onNodeWithText(Accueil).assertExists()
-        composeTestRule.onNodeWithText(Bilan).assertExists()
-        composeTestRule.onNodeWithText(Nutrition).assertExists()
-        composeTestRule.onNodeWithText(Plan).assertExists()
-        composeTestRule.onNodeWithText(Plus).assertExists()
+        composeTestRule.onNodeWithText("Accueil").assertExists()
+        composeTestRule.onNodeWithText("Bilan").assertExists()
+        composeTestRule.onNodeWithText("Nutrition").assertExists()
+        composeTestRule.onNodeWithText("Plan").assertExists()
+        composeTestRule.onNodeWithText("Plus").assertExists()
     }
 
     @Test
@@ -58,7 +58,7 @@ class DashboardScreenTest {
         composeTestRule.setContent {
             TelomerTheme {
                 NavigationBar {
-                    listOf(Accueil, Bilan, Nutrition, Plan, Plus).forEachIndexed { index, label ->
+                    listOf("Accueil", "Bilan", "Nutrition", "Plan", "Plus").forEachIndexed { index, label ->
                         NavigationBarItem(
                             selected = index == 0,
                             onClick = {},
@@ -70,7 +70,7 @@ class DashboardScreenTest {
             }
         }
         // 5 tabs doivent être présents
-        val tabs = listOf(Accueil, Bilan, Nutrition, Plan, Plus)
+        val tabs = listOf("Accueil", "Bilan", "Nutrition", "Plan", "Plus")
         tabs.forEach { tab ->
             composeTestRule.onNodeWithText(tab).assertExists()
         }
