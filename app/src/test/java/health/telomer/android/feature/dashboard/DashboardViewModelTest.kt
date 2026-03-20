@@ -1,12 +1,11 @@
 package health.telomer.android.feature.dashboard
 
-import health.telomer.android.core.data.api.TelomerApi
 import health.telomer.android.core.data.api.models.AppointmentResponse
 import health.telomer.android.core.data.api.models.ConversationResponse
 import health.telomer.android.core.data.api.models.PatientProfile
 import health.telomer.android.core.data.api.models.HealthOSDashboardResponse
+import health.telomer.android.feature.dashboard.data.DashboardRepository
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,7 +19,7 @@ import org.junit.Assert.*
 class DashboardViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private lateinit var api: TelomerApi
+    private lateinit var repository: DashboardRepository
     private lateinit var viewModel: DashboardViewModel
 
     private val fakeProfile = PatientProfile(
@@ -35,7 +34,7 @@ class DashboardViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        api = mockk(relaxed = true)
+        repository = mockk(relaxed = true)
     }
 
     @After
@@ -45,12 +44,20 @@ class DashboardViewModelTest {
 
     @Test
     fun `loadDashboard success - firstName correct`() = runTest {
-        coEvery { api.getMyProfile() } returns fakeProfile
-        coEvery { api.getMyAppointments() } returns emptyList()
-        coEvery { api.getConversations() } returns emptyList()
-        coEvery { api.getHealthOSDashboard() } returns mockk { every { globalScore } returns 78.5 }
+        val mockDashboard = HealthOSDashboardResponse(
+            patientId = "test-id",
+            globalScore = 78.5,
+            globalConfidence = null,
+            inflammation = null,
+            pillars = emptyList(),
+            computedAt = null,
+        )
+        coEvery { repository.getProfile() } returns fakeProfile
+        coEvery { repository.getUpcomingAppointments() } returns emptyList()
+        coEvery { repository.getConversations() } returns emptyList()
+        coEvery { repository.getHealthOSDashboard() } returns mockDashboard
 
-        viewModel = DashboardViewModel(api)
+        viewModel = DashboardViewModel(repository)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -62,9 +69,9 @@ class DashboardViewModelTest {
 
     @Test
     fun `loadDashboard failure - erreur affichee`() = runTest {
-        coEvery { api.getMyProfile() } throws RuntimeException("Serveur indisponible")
+        coEvery { repository.getProfile() } throws RuntimeException("Serveur indisponible")
 
-        viewModel = DashboardViewModel(api)
+        viewModel = DashboardViewModel(repository)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -75,15 +82,15 @@ class DashboardViewModelTest {
 
     @Test
     fun `unreadMessages - somme correcte`() = runTest {
-        coEvery { api.getMyProfile() } returns fakeProfile
-        coEvery { api.getMyAppointments() } returns emptyList()
-        coEvery { api.getConversations() } returns listOf(
+        coEvery { repository.getProfile() } returns fakeProfile
+        coEvery { repository.getUpcomingAppointments() } returns emptyList()
+        coEvery { repository.getConversations() } returns listOf(
             ConversationResponse(userId = "u1", userName = "Dr Martin", unreadCount = 3),
             ConversationResponse(userId = "u2", userName = "Dr Dupont", unreadCount = 5),
         )
-        coEvery { api.getHealthOSDashboard() } throws RuntimeException("pas dispo")
+        coEvery { repository.getHealthOSDashboard() } returns null
 
-        viewModel = DashboardViewModel(api)
+        viewModel = DashboardViewModel(repository)
         advanceUntilIdle()
 
         assertEquals(8, viewModel.uiState.value.unreadMessages)
@@ -95,29 +102,29 @@ class DashboardViewModelTest {
         val farFuture = AppointmentResponse(id = "a_far", scheduledAt = "2099-12-31T10:00:00Z", status = "confirmed")
         val pastAppt = AppointmentResponse(id = "a_past", scheduledAt = pastDate, status = "confirmed")
 
-        coEvery { api.getMyProfile() } returns fakeProfile
-        coEvery { api.getMyAppointments() } returns listOf(farFuture, nearFuture, pastAppt)
-        coEvery { api.getConversations() } returns emptyList()
-        coEvery { api.getHealthOSDashboard() } throws RuntimeException("pas dispo")
+        coEvery { repository.getProfile() } returns fakeProfile
+        coEvery { repository.getUpcomingAppointments() } returns listOf(farFuture, nearFuture, pastAppt)
+        coEvery { repository.getConversations() } returns emptyList()
+        coEvery { repository.getHealthOSDashboard() } returns null
 
-        viewModel = DashboardViewModel(api)
+        viewModel = DashboardViewModel(repository)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertNotNull(state.nextAppointment)
-        assertEquals("Le RDV le plus proche dans le futur", "a_near", state.nextAppointment!!.id)
+        assertEquals("a_near", state.nextAppointment!!.id)
     }
 
     @Test
     fun `rendez-vous annules ignores`() = runTest {
         val cancelled = AppointmentResponse(id = "a1", scheduledAt = futureDate, status = "cancelled")
 
-        coEvery { api.getMyProfile() } returns fakeProfile
-        coEvery { api.getMyAppointments() } returns listOf(cancelled)
-        coEvery { api.getConversations() } returns emptyList()
-        coEvery { api.getHealthOSDashboard() } throws RuntimeException("pas dispo")
+        coEvery { repository.getProfile() } returns fakeProfile
+        coEvery { repository.getUpcomingAppointments() } returns listOf(cancelled)
+        coEvery { repository.getConversations() } returns emptyList()
+        coEvery { repository.getHealthOSDashboard() } returns null
 
-        viewModel = DashboardViewModel(api)
+        viewModel = DashboardViewModel(repository)
         advanceUntilIdle()
 
         assertNull("RDV annule ignore", viewModel.uiState.value.nextAppointment)
@@ -125,18 +132,17 @@ class DashboardViewModelTest {
 
     @Test
     fun `healthOSScore null si API health-os indisponible`() = runTest {
-        coEvery { api.getMyProfile() } returns fakeProfile
-        coEvery { api.getMyAppointments() } returns emptyList()
-        coEvery { api.getConversations() } returns emptyList()
-        coEvery { api.getHealthOSDashboard() } throws RuntimeException("Service indisponible")
+        coEvery { repository.getProfile() } returns fakeProfile
+        coEvery { repository.getUpcomingAppointments() } returns emptyList()
+        coEvery { repository.getConversations() } returns emptyList()
+        coEvery { repository.getHealthOSDashboard() } returns null
 
-        viewModel = DashboardViewModel(api)
+        viewModel = DashboardViewModel(repository)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
         assertNull(state.healthOSScore)
-        // Pas d'erreur globale car health-os est catch individuellement
         assertNull(state.error)
     }
 }

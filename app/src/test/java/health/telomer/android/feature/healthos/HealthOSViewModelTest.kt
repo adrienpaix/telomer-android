@@ -8,21 +8,30 @@ import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import com.google.common.truth.Truth.assertThat
-import health.telomer.android.core.data.api.TelomerApi
+import org.junit.Assert.*
 import health.telomer.android.core.data.api.models.*
+import health.telomer.android.feature.healthos.data.HealthOSRepository
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HealthOSViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private lateinit var api: TelomerApi
+    private lateinit var repository: HealthOSRepository
     private lateinit var viewModel: HealthOSViewModel
+
+    private val mockDashboard = HealthOSDashboardResponse(
+        patientId = "test-id",
+        globalScore = 75.5,
+        globalConfidence = null,
+        inflammation = null,
+        pillars = emptyList(),
+        computedAt = null,
+    )
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        api = mockk()
+        repository = mockk()
     }
 
     @After
@@ -32,38 +41,32 @@ class HealthOSViewModelTest {
 
     @Test
     fun `loadDashboard success sets dashboard in state`() = runTest {
-        val mockDashboard = HealthOSDashboardResponse(
-            patientId = "test-id",
-            globalScore = 75.5,
-            globalConfidence = null,
-            inflammation = null,
-            pillars = emptyList(),
-            computedAt = null,
-        )
-        coEvery { api.getHealthOSDashboard() } returns mockDashboard
+        coEvery { repository.getDashboard() } returns mockDashboard
 
-        viewModel = HealthOSViewModel(api)
+        viewModel = HealthOSViewModel(repository)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.dashboard).isEqualTo(mockDashboard)
-        assertThat(viewModel.uiState.value.isLoading).isFalse()
-        assertThat(viewModel.uiState.value.error).isNull()
+        val state = viewModel.uiState.value
+        assertEquals(mockDashboard, state.dashboard)
+        assertFalse(state.isLoading)
+        assertNull(state.error)
     }
 
     @Test
     fun `loadDashboard failure sets error in state`() = runTest {
-        coEvery { api.getHealthOSDashboard() } throws RuntimeException("Network error")
+        coEvery { repository.getDashboard() } throws RuntimeException("Network error")
 
-        viewModel = HealthOSViewModel(api)
+        viewModel = HealthOSViewModel(repository)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isNotNull()
-        assertThat(viewModel.uiState.value.isLoading).isFalse()
+        val state = viewModel.uiState.value
+        assertNotNull(state.error)
+        assertFalse(state.isLoading)
     }
 
     @Test
     fun `globalScore as Double is not truncated`() = runTest {
-        val mockDashboard = HealthOSDashboardResponse(
+        val dashboardWith6378 = HealthOSDashboardResponse(
             patientId = "test-id",
             globalScore = 63.78,
             globalConfidence = null,
@@ -71,34 +74,27 @@ class HealthOSViewModelTest {
             pillars = emptyList(),
             computedAt = null,
         )
-        coEvery { api.getHealthOSDashboard() } returns mockDashboard
+        coEvery { repository.getDashboard() } returns dashboardWith6378
 
-        viewModel = HealthOSViewModel(api)
+        viewModel = HealthOSViewModel(repository)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.dashboard?.globalScore).isEqualTo(63.78)
+        assertEquals(63.78, viewModel.uiState.value.dashboard?.globalScore)
     }
 
     @Test
     fun `selectPillar failure sets error in state`() = runTest {
-        val mockDashboard = HealthOSDashboardResponse(
-            patientId = "test-id",
-            globalScore = 70.0,
-            globalConfidence = null,
-            inflammation = null,
-            pillars = emptyList(),
-            computedAt = null,
-        )
-        coEvery { api.getHealthOSDashboard() } returns mockDashboard
-        coEvery { api.getHealthOSPillar("cardiovascular") } throws RuntimeException("Server error")
+        coEvery { repository.getDashboard() } returns mockDashboard
+        coEvery { repository.getPillar("cardiovascular") } throws RuntimeException("Server error")
 
-        viewModel = HealthOSViewModel(api)
+        viewModel = HealthOSViewModel(repository)
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.selectPillar("cardiovascular")
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isNotNull()
-        assertThat(viewModel.uiState.value.selectedPillarCode).isNull()
+        val state = viewModel.uiState.value
+        assertNotNull(state.error)
+        assertNull(state.selectedPillarCode)
     }
 }
