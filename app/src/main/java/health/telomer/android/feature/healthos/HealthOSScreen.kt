@@ -85,7 +85,7 @@ fun ScoreCircle(score: Double?, size: Dp = 120.dp, strokeWidth: Dp = 12.dp) {
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = score?.let { kotlin.math.roundToInt(it).toString() } ?: "\u2014",
+                text = score?.let { it.roundToInt().toString() } ?: "\u2014",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontSize = (size.value * 0.3f).sp,
                 ),
