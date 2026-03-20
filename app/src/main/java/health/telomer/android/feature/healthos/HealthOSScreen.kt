@@ -210,7 +210,7 @@ private fun InflammationBar(inflammation: InflammationResponse?) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Whatshot, null, tint = TelomerAmber, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Whatshot, contentDescription = "Inflammation", tint = TelomerAmber, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "Inflammation",
@@ -446,7 +446,7 @@ fun HealthOSScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            Icons.Default.ErrorOutline, null,
+                            Icons.Default.ErrorOutline, contentDescription = "Erreur de chargement",
                             tint = TelomerRed, modifier = Modifier.size(48.dp),
                         )
                         Spacer(Modifier.height(12.dp))

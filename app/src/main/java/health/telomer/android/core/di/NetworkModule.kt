@@ -8,6 +8,7 @@ import health.telomer.android.BuildConfig
 import health.telomer.android.auth.AuthManager
 import health.telomer.android.core.data.api.TelomerApi
 import kotlinx.coroutines.runBlocking
+import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -26,6 +27,12 @@ object NetworkModule {
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)
+            .certificatePinner(
+                CertificatePinner.Builder()
+                    .add("api.telomer.health", "sha256/gN77EQZzOlzMaWaIGvpQILY1zUsTFsDfWshKc3R7hOg=")
+                    .add("auth.telomer.health", "sha256/gN77EQZzOlzMaWaIGvpQILY1zUsTFsDfWshKc3R7hOg=")
+                    .build()
+            )
             .addInterceptor { chain ->
                 val token = runBlocking { authManager.getValidAccessToken() }
                 val request = if (token != null) {

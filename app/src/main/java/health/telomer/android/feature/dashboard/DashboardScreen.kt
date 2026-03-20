@@ -52,7 +52,7 @@ fun DashboardScreen(
         } else if (state.error != null && state.firstName.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.ErrorOutline, null, tint = TelomerRed, modifier = Modifier.size(48.dp))
+                    Icon(Icons.Default.ErrorOutline, contentDescription = "Erreur", tint = TelomerRed, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(12.dp))
                     Text(state.error!!, color = TelomerGray500)
                     Spacer(Modifier.height(12.dp))
@@ -108,7 +108,7 @@ fun DashboardScreen(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                        Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF94A3B8))
+                        Icon(Icons.Default.ChevronRight, contentDescription = "Voir mon bilan santé", tint = Color(0xFF94A3B8))
                     }
                 }
 

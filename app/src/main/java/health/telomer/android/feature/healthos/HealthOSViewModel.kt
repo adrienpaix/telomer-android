@@ -48,7 +48,10 @@ class HealthOSViewModel @Inject constructor(
                 val detail = api.getHealthOSPillar(code)
                 _uiState.value = _uiState.value.copy(selectedPillar = detail)
             } catch (e: Exception) {
-                // Silently fail, keep selectedPillarCode set so user sees loading
+                _uiState.value = _uiState.value.copy(
+                    error = "Impossible de charger ce pilier. Réessayez.",
+                    selectedPillarCode = null,
+                )
             }
         }
     }
