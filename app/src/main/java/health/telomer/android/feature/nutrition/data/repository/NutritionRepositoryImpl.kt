@@ -1,8 +1,6 @@
 package health.telomer.android.feature.nutrition.data.repository
 
-import health.telomer.android.feature.nutrition.data.api.CreateMealRequest
-import health.telomer.android.feature.nutrition.data.api.MealItemInput
-import health.telomer.android.feature.nutrition.data.api.NutritionApi
+import health.telomer.android.feature.nutrition.data.api.*
 import health.telomer.android.feature.nutrition.data.mapper.*
 import health.telomer.android.feature.nutrition.domain.model.*
 import health.telomer.android.feature.nutrition.domain.repository.NutritionRepository
@@ -15,14 +13,33 @@ class NutritionRepositoryImpl @Inject constructor(
 ) : NutritionRepository {
 
     override suspend fun getDailySummary(date: String): Result<DailySummary> = runCatching {
-        val response = api.getMeals(date)
+        val items = api.getFoodLogs(date)
+        val summary = runCatching { api.getSummary(date) }.getOrNull()
+
+        // Group items by meal_type to build MealLog list
+        val mealsByType = items.groupBy { it.mealType ?: SNACK }
+        val meals = mealsByType.map { (type, logItems) ->
+            MealLog(
+                id = logItems.first().id,
+                date = date,
+                mealType = when (type.uppercase()) {
+                    BREAKFAST -> MealType.BREAKFAST
+                    LUNCH -> MealType.LUNCH
+                    DINNER -> MealType.DINNER
+                    else -> MealType.SNACK
+                },
+                items = logItems.map { it.toMealLogItem() },
+                notes = null,
+            )
+        }
+
         DailySummary(
-            date = response.date,
-            totalCalories = response.totals?.caloriesKcal ?: 0.0,
-            totalProteins = response.totals?.proteinsG ?: 0.0,
-            totalCarbs = response.totals?.carbsG ?: 0.0,
-            totalFats = response.totals?.fatsG ?: 0.0,
-            meals = response.meals.map { it.toDomain() },
+            date = summary?.date ?: date,
+            totalCalories = summary?.totalCalories ?: items.sumOf { it.calories ?: 0.0 },
+            totalProteins = summary?.totalProteinG ?: items.sumOf { it.proteinG ?: 0.0 },
+            totalCarbs = summary?.totalCarbsG ?: items.sumOf { it.carbsG ?: 0.0 },
+            totalFats = summary?.totalFatG ?: items.sumOf { it.fatG ?: 0.0 },
+            meals = meals,
             goal = null,
         )
     }
@@ -38,24 +55,23 @@ class NutritionRepositoryImpl @Inject constructor(
     override suspend fun addMealItem(
         date: String, mealType: MealType, foodItemId: String, quantityG: Double,
     ): Result<MealLogItem> = runCatching {
-        val meal = api.createMeal(
-            CreateMealRequest(
-                date = date,
+        val item = api.createFoodLog(
+            FoodLogCreateRequest(
+                foodName = foodItemId,
                 mealType = mealType.name,
-                items = listOf(MealItemInput(foodItemId = foodItemId, quantityG = quantityG)),
+                quantityG = quantityG,
+                source = manual,
             )
         )
-        // Return the first item from the created meal
-        meal.items.first().toDomain()
+        item.toMealLogItem()
     }
 
     override suspend fun deleteMealItem(mealItemId: String): Result<Unit> = runCatching {
-        // The backend doesn't have a delete-item endpoint, delete the whole meal
-        api.deleteMeal(mealItemId)
+        api.deleteFoodLog(mealItemId)
     }
 
     override suspend fun deleteMeal(mealId: String): Result<Unit> = runCatching {
-        api.deleteMeal(mealId)
+        api.deleteFoodLog(mealId)
     }
 
     override suspend fun getGoals(): Result<NutritionGoal> = runCatching {

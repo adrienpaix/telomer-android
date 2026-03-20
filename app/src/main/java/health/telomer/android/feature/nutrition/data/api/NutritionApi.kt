@@ -4,8 +4,7 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import retrofit2.http.*
 
-// ── DTOs ────────────────────────────────────────────────
-
+// ── Search DTOs (food database) ─────────────────────────
 @JsonClass(generateAdapter = true)
 data class FoodItemDto(
     val id: String,
@@ -21,23 +20,52 @@ data class FoodItemDto(
 )
 
 @JsonClass(generateAdapter = true)
-data class MealLogItemDto(
+data class FoodSearchResponse(
+    val items: List<FoodItemDto> = emptyList(),
+    val count: Int = 0,
+)
+
+// ── Food Log DTOs (aligned with real backend) ──────────
+@JsonClass(generateAdapter = true)
+data class FoodLogItemDto(
     val id: String,
-    @Json(name = "food_item") val foodItem: FoodItemDto,
-    @Json(name = "quantity_g") val quantityG: Double,
-    @Json(name = "calories_kcal") val caloriesKcal: Double? = null,
-    @Json(name = "proteins_g") val proteinsG: Double? = null,
+    @Json(name = "food_name") val foodName: String,
+    @Json(name = "meal_type") val mealType: String? = null,
+    @Json(name = "quantity_g") val quantityG: Double? = null,
+    val calories: Double? = null,
+    @Json(name = "protein_g") val proteinG: Double? = null,
     @Json(name = "carbs_g") val carbsG: Double? = null,
-    @Json(name = "fats_g") val fatsG: Double? = null,
+    @Json(name = "fat_g") val fatG: Double? = null,
+    @Json(name = "fiber_g") val fiberG: Double? = null,
+    val source: String? = null,
+    @Json(name = "logged_at") val loggedAt: String? = null,
+    val confidence: Double? = null,
+    val barcode: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
-data class MealLogDto(
-    val id: String,
+data class FoodLogSummaryDto(
     val date: String,
-    @Json(name = "meal_type") val mealType: String,
-    val items: List<MealLogItemDto>,
-    val notes: String? = null,
+    @Json(name = "total_calories") val totalCalories: Double = 0.0,
+    @Json(name = "total_protein_g") val totalProteinG: Double = 0.0,
+    @Json(name = "total_carbs_g") val totalCarbsG: Double = 0.0,
+    @Json(name = "total_fat_g") val totalFatG: Double = 0.0,
+    @Json(name = "total_fiber_g") val totalFiberG: Double = 0.0,
+    @Json(name = "meal_count") val mealCount: Int = 0,
+)
+
+@JsonClass(generateAdapter = true)
+data class FoodLogCreateRequest(
+    @Json(name = "food_name") val foodName: String,
+    @Json(name = "meal_type") val mealType: String? = null,
+    @Json(name = "quantity_g") val quantityG: Double? = 100.0,
+    val calories: Double? = null,
+    @Json(name = "protein_g") val proteinG: Double? = null,
+    @Json(name = "carbs_g") val carbsG: Double? = null,
+    @Json(name = "fat_g") val fatG: Double? = null,
+    @Json(name = "fiber_g") val fiberG: Double? = null,
+    val source: String? = "manual",
+    val barcode: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -49,115 +77,44 @@ data class NutritionGoalDto(
 )
 
 @JsonClass(generateAdapter = true)
-data class DayTotalsDto(
-    @Json(name = "calories_kcal") val caloriesKcal: Double = 0.0,
-    @Json(name = "proteins_g") val proteinsG: Double = 0.0,
-    @Json(name = "carbs_g") val carbsG: Double = 0.0,
-    @Json(name = "fats_g") val fatsG: Double = 0.0,
-)
+data class AnalyzeTextRequest(val text: String)
 
 @JsonClass(generateAdapter = true)
-data class MealLogDayResponseDto(
-    val date: String,
-    val meals: List<MealLogDto>,
-    val totals: DayTotalsDto? = null,
-)
-
-@JsonClass(generateAdapter = true)
-data class DailySummaryDto(
-    val date: String,
-    @Json(name = "total_calories") val totalCalories: Double,
-    @Json(name = "total_proteins") val totalProteins: Double,
-    @Json(name = "total_carbs") val totalCarbs: Double,
-    @Json(name = "total_fats") val totalFats: Double,
-    val meals: List<MealLogDto>,
-    val goal: NutritionGoalDto? = null,
-)
-
-@JsonClass(generateAdapter = true)
-data class AddMealItemRequest(
-    @Json(name = "food_item_id") val foodItemId: String,
-    @Json(name = "quantity_g") val quantityG: Double,
-    @Json(name = "meal_type") val mealType: String,
-)
-
-@JsonClass(generateAdapter = true)
-data class CreateMealRequest(
-    val date: String,
-    @Json(name = "meal_type") val mealType: String,
-    val items: List<MealItemInput>? = null,
-    val notes: String? = null,
-)
-
-@JsonClass(generateAdapter = true)
-data class MealItemInput(
-    @Json(name = "food_item_id") val foodItemId: String,
-    @Json(name = "quantity_g") val quantityG: Double,
-)
-
-@JsonClass(generateAdapter = true)
-data class FoodSearchResponse(
-    val items: List<FoodItemDto> = emptyList(),
-    val count: Int = 0,
-)
-
-@JsonClass(generateAdapter = true)
-data class NutritionSummaryDto(
-    val date: String,
-    @Json(name = "total_calories") val totalCalories: Double = 0.0,
-    @Json(name = "total_proteins") val totalProteins: Double = 0.0,
-    @Json(name = "total_carbs") val totalCarbs: Double = 0.0,
-    @Json(name = "total_fats") val totalFats: Double = 0.0,
-    @Json(name = "meal_count") val mealCount: Int = 0,
-    val goal: NutritionGoalDto? = null,
-)
-
-// ── Text Analysis DTOs ─────────────────────────────────
-
-@JsonClass(generateAdapter = true)
-data class AnalyzeTextRequest(
-    @Json(name = "text") val text: String,
-)
-
-@JsonClass(generateAdapter = true)
-data class AnalyzedMealItem(
-    val name: String,
-    @Json(name = "quantity_g") val quantityG: Double? = null,
-    @Json(name = "calories_kcal") val caloriesKcal: Double? = null,
-    @Json(name = "proteins_g") val proteinsG: Double? = null,
+data class AnalyzeTextResponseDto(
+    @Json(name = "food_name") val foodName: String? = null,
+    val calories: Double? = null,
+    @Json(name = "protein_g") val proteinG: Double? = null,
     @Json(name = "carbs_g") val carbsG: Double? = null,
-    @Json(name = "fats_g") val fatsG: Double? = null,
-    @Json(name = "food_item_id") val foodItemId: String? = null,
+    @Json(name = "fat_g") val fatG: Double? = null,
+    @Json(name = "fiber_g") val fiberG: Double? = null,
+    val quantity: Double? = null,
+    val unit: String? = null,
+    val confidence: Double? = null,
 )
 
 @JsonClass(generateAdapter = true)
-data class AnalyzedMealResponse(
-    val items: List<AnalyzedMealItem> = emptyList(),
-    @Json(name = "total_calories") val totalCalories: Double? = null,
-    val raw: String? = null,
-)
+data class AnalyzeBarcodeRequest(val barcode: String)
 
 // ── Retrofit Interface ──────────────────────────────────
-
 interface NutritionApi {
 
     @GET("me/food-log")
-    suspend fun getMeals(@Query("date") date: String): MealLogDayResponseDto
+    suspend fun getFoodLogs(@Query("date") date: String? = null): List<FoodLogItemDto>
 
     @POST("me/food-log")
-    suspend fun createMeal(@Body request: CreateMealRequest): MealLogDto
+    suspend fun createFoodLog(@Body request: FoodLogCreateRequest): FoodLogItemDto
 
-    @PUT("me/food-log/{mealId}")
-    suspend fun updateMeal(@Path("mealId") mealId: String, @Body request: CreateMealRequest): MealLogDto
-
-    @DELETE("me/food-log/{mealId}")
-    suspend fun deleteMeal(@Path("mealId") mealId: String)
+    @DELETE("me/food-log/{id}")
+    suspend fun deleteFoodLog(@Path("id") id: String)
 
     @GET("me/food-log/summary")
-    suspend fun getSummary(@Query("date") date: String): NutritionSummaryDto
+    suspend fun getSummary(@Query("date") date: String? = null): FoodLogSummaryDto
 
     @POST("me/food-log/analyze/text")
-    suspend fun analyzeText(@Body request: AnalyzeTextRequest): AnalyzedMealResponse
+    suspend fun analyzeText(@Body request: AnalyzeTextRequest): AnalyzeTextResponseDto
+
+    @POST("me/food-log/analyze/barcode")
+    suspend fun analyzeBarcode(@Body request: AnalyzeBarcodeRequest): FoodLogItemDto
 
     @GET("me/food-log/food/search")
     suspend fun searchFood(@Query("q") query: String): FoodSearchResponse

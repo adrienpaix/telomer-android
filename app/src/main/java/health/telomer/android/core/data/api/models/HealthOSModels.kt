@@ -23,7 +23,7 @@ data class InflammationResponse(
 data class PillarSummaryResponse(
     val code: String,
     val label: String,
-    val score: Int?,
+    val score: Double?,
     val confidence: String?,
     val trend: String?,
     @Json(name = "completeness_pct") val completenessPct: Int?,
@@ -33,7 +33,7 @@ data class PillarSummaryResponse(
 data class PillarDetailResponse(
     val code: String,
     val label: String,
-    val score: Int?,
+    val score: Double?,
     val confidence: String?,
     @Json(name = "completeness_pct") val completenessPct: Int?,
     val metrics: List<MetricResponse>,
