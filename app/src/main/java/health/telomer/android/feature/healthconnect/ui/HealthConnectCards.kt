@@ -1,5 +1,6 @@
 package health.telomer.android.feature.healthconnect.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,21 +24,21 @@ import health.telomer.android.core.ui.theme.*
 import kotlin.math.roundToInt
 
 // ── Internal palette (shared within package) ──────────────────────
-internal val DarkBg = Color(0xFF1A1A2E)
-internal val CardBg = Color(0xFF242438)
-internal val BarTrack = Color(0xFF3A3A4E)
-internal val TextSecondary = Color(0xFF9CA3AF)
-internal val ActivityGreen = TelomerGreen
-internal val CardioRed = TelomerRed
-internal val SleepPurple = Color(0xFF8B5CF6)
-internal val CompositionBlue = Color(0xFF3B82F6)
-internal val TelomerCyan = TelomerBlue
+internal val DarkBg = WhoopDark
+internal val CardBg = WhoopCardBg
+internal val BarTrack = WhoopCardBorder
+internal val TextSecondary = WhoopTextSecondary
+internal val ActivityGreen = WhoopGreen
+internal val CardioRed = WhoopRed
+internal val SleepPurple = WhoopPurple
+internal val CompositionBlue = WhoopBlue
+internal val TelomerCyan = WhoopCyan
 internal val ZoneColors = listOf(
     Color(0xFF6B7280), // Z1 grey
     Color(0xFF3B82F6), // Z2 blue
-    TelomerGreen,      // Z3 green
-    TelomerOrange,     // Z4 amber
-    TelomerRed,        // Z5 red
+    WhoopGreen,        // Z3 green
+    WhoopOrange,       // Z4 amber
+    WhoopRed,          // Z5 red
 )
 
 @Composable
@@ -47,18 +48,26 @@ internal fun ScoreCircle(score: Int, modifier: Modifier = Modifier) {
             val strokeWidth = 12.dp.toPx()
             val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round)
             val sweepAngle = 270f * (score / 100f).coerceIn(0f, 1f)
-            drawArc(color = BarTrack, startAngle = 135f, sweepAngle = 270f, useCenter = false, style = stroke)
+            // Glow
             val progressColor = when {
-                score >= 80 -> ActivityGreen
-                score >= 60 -> TelomerOrange
-                score >= 40 -> TelomerOrange
-                else -> CardioRed
+                score >= 80 -> WhoopGreen
+                score >= 60 -> WhoopOrange
+                score >= 40 -> WhoopOrange
+                else -> WhoopRed
             }
+            drawArc(
+                color = progressColor.copy(alpha = 0.3f),
+                startAngle = 135f,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                style = Stroke(width = strokeWidth + 8.dp.toPx(), cap = StrokeCap.Round),
+            )
+            drawArc(color = WhoopCardBorder, startAngle = 135f, sweepAngle = 270f, useCenter = false, style = stroke)
             drawArc(color = progressColor, startAngle = 135f, sweepAngle = sweepAngle, useCenter = false, style = stroke)
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("$score", fontSize = 40.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            Text("%", fontSize = 16.sp, color = TextSecondary)
+            Text(score.toString(), fontSize = 40.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("%", fontSize = 16.sp, color = WhoopTextSecondary)
         }
     }
 }
@@ -69,11 +78,11 @@ internal fun CategoryHeader(icon: String, title: String, color: Color) {
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 20.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(icon, fontSize = 20.sp)
+        Box(modifier = Modifier.width(3.dp).height(20.dp).background(color, RoundedCornerShape(1.5.dp)))
+        Spacer(Modifier.width(12.dp))
+        Text(icon, fontSize = 18.sp)
         Spacer(Modifier.width(8.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = color)
-        Spacer(Modifier.weight(1f))
-        Box(modifier = Modifier.width(40.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(color.copy(alpha = 0.4f)))
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = WhoopTextPrimary)
     }
 }
 
@@ -91,42 +100,45 @@ internal fun MetricCard(
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
+        colors = CardDefaults.cardColors(containerColor = WhoopCardBg),
+        border = BorderStroke(1.dp, WhoopCardBorder),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(icon, fontSize = 18.sp)
+                    Text(icon, fontSize = 20.sp)
                     Spacer(Modifier.width(8.dp))
-                    Text(label, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                    Text(label, style = MaterialTheme.typography.bodyMedium, color = WhoopTextSecondary)
                 }
                 status?.let { s ->
                     val pillColor = statusColor ?: color
-                    Surface(shape = RoundedCornerShape(12.dp), color = pillColor.copy(alpha = 0.15f)) {
-                        Text(s, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold), color = pillColor)
-                    }
+                    Text(s, style = MaterialTheme.typography.labelSmall, color = pillColor)
                 }
             }
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(value, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(value, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = WhoopTextPrimary)
                 if (unit.isNotEmpty()) {
-                    Spacer(Modifier.width(6.dp))
-                    Text(unit, fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(unit, style = MaterialTheme.typography.bodyMedium, color = WhoopTextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 }
                 target?.let { t ->
-                    Spacer(Modifier.width(6.dp))
-                    Text(t, fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                    Spacer(Modifier.weight(1f))
+                    Text(t, style = MaterialTheme.typography.bodySmall, color = WhoopTextSecondary)
                 }
             }
-            if (progress > 0f || target != null) {
-                Spacer(Modifier.height(10.dp))
-                Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(BarTrack)) {
-                    Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(fraction = progress).clip(RoundedCornerShape(4.dp)).background(color))
+            if (progress > 0f) {
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(3.dp)
+                        .background(WhoopCardBorder, RoundedCornerShape(1.5.dp))
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(fraction = progress.coerceIn(0f, 1f)).fillMaxHeight()
+                            .background(color, RoundedCornerShape(1.5.dp))
+                    )
                 }
-                Spacer(Modifier.height(4.dp))
-                Text("${(progress * 100).roundToInt()}%", fontSize = 11.sp, color = TextSecondary)
             }
         }
     }
@@ -134,14 +146,22 @@ internal fun MetricCard(
 
 @Composable
 internal fun SmallMetricCard(label: String, value: String, unit: String, color: Color, modifier: Modifier = Modifier) {
-    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardBg), modifier = modifier.padding(vertical = 4.dp)) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(label, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = WhoopCardBg),
+        border = BorderStroke(1.dp, WhoopCardBorder),
+        modifier = modifier.padding(vertical = 4.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = WhoopTextSecondary, textAlign = TextAlign.Center)
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Spacer(Modifier.width(4.dp))
-                Text(unit, fontSize = 11.sp, color = TextSecondary, modifier = Modifier.padding(bottom = 3.dp))
+                Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = WhoopTextPrimary)
+                Spacer(Modifier.width(2.dp))
+                Text(unit, style = MaterialTheme.typography.labelSmall, color = WhoopTextSecondary, modifier = Modifier.padding(bottom = 2.dp))
             }
         }
     }
@@ -151,7 +171,8 @@ internal fun SmallMetricCard(label: String, value: String, unit: String, color: 
 internal fun SmallMetricCardFull(label: String, value: String, unit: String, icon: String, color: Color) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
+        colors = CardDefaults.cardColors(containerColor = WhoopCardBg),
+        border = BorderStroke(1.dp, WhoopCardBorder),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         Row(
@@ -160,11 +181,11 @@ internal fun SmallMetricCardFull(label: String, value: String, unit: String, ico
         ) {
             Text(icon, fontSize = 20.sp)
             Spacer(Modifier.width(12.dp))
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = TextSecondary, modifier = Modifier.weight(1f))
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = WhoopTextSecondary, modifier = Modifier.weight(1f))
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = WhoopTextPrimary)
                 Spacer(Modifier.width(4.dp))
-                Text(unit, fontSize = 11.sp, color = TextSecondary, modifier = Modifier.padding(bottom = 3.dp))
+                Text(unit, style = MaterialTheme.typography.labelSmall, color = WhoopTextSecondary, modifier = Modifier.padding(bottom = 2.dp))
             }
         }
     }
@@ -177,21 +198,22 @@ internal fun HeartZonesCard(zoneMinutes: List<Int>) {
 
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
+        colors = CardDefaults.cardColors(containerColor = WhoopCardBg),
+        border = BorderStroke(1.dp, WhoopCardBorder),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Zones FC — 7 jours", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            Text("Zones FC \u2014 7 jours", style = MaterialTheme.typography.bodySmall, color = WhoopTextSecondary)
             Spacer(Modifier.height(12.dp))
             zoneMinutes.forEachIndexed { i, mins ->
                 val fraction = mins.toFloat() / total
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
                     Text(zoneLabels[i], style = MaterialTheme.typography.labelSmall, color = ZoneColors[i], modifier = Modifier.width(90.dp))
-                    Box(modifier = Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(BarTrack)) {
-                        Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(fraction).clip(RoundedCornerShape(5.dp)).background(ZoneColors[i]))
+                    Box(modifier = Modifier.weight(1f).height(3.dp).background(WhoopCardBorder, RoundedCornerShape(1.5.dp))) {
+                        Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(fraction).background(ZoneColors[i], RoundedCornerShape(1.5.dp)))
                     }
                     Spacer(Modifier.width(8.dp))
-                    Text("${mins}m", style = MaterialTheme.typography.labelSmall, color = TextSecondary, modifier = Modifier.width(32.dp), textAlign = TextAlign.End)
+                    Text(mins.toString() + "m", style = MaterialTheme.typography.labelSmall, color = WhoopTextSecondary, modifier = Modifier.width(32.dp), textAlign = TextAlign.End)
                 }
             }
         }
@@ -203,31 +225,33 @@ internal fun SleepStagesCard(lightMin: Int, deepMin: Int, remMin: Int, bedtime: 
     val total = (lightMin + deepMin + remMin).coerceAtLeast(1)
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
+        colors = CardDefaults.cardColors(containerColor = WhoopCardBg),
+        border = BorderStroke(1.dp, WhoopCardBorder),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Phases de sommeil", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                Text("Phases de sommeil", style = MaterialTheme.typography.bodySmall, color = WhoopTextSecondary)
                 if (bedtime != null && wakeTime != null) {
-                    Text("$bedtime → $wakeTime", style = MaterialTheme.typography.labelSmall, color = SleepPurple)
+                    Text(bedtime + " \u2192 " + wakeTime, style = MaterialTheme.typography.labelSmall, color = WhoopPurple)
                 }
             }
             Spacer(Modifier.height(12.dp))
             listOf(
                 Triple("Léger", lightMin, Color(0xFF93C5FD)),
-                Triple("Profond", deepMin, SleepPurple),
+                Triple("Profond", deepMin, WhoopPurple),
                 Triple("REM", remMin, Color(0xFFC4B5FD)),
             ).forEach { (label, mins, color) ->
                 val frac = mins.toFloat() / total
                 val h = mins / 60; val m = mins % 60
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
                     Text(label, style = MaterialTheme.typography.labelSmall, color = color, modifier = Modifier.width(60.dp))
-                    Box(modifier = Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(BarTrack)) {
-                        Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(frac).clip(RoundedCornerShape(5.dp)).background(color))
+                    Box(modifier = Modifier.weight(1f).height(3.dp).background(WhoopCardBorder, RoundedCornerShape(1.5.dp))) {
+                        Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(frac).background(color, RoundedCornerShape(1.5.dp)))
                     }
                     Spacer(Modifier.width(8.dp))
-                    Text(if (h > 0) "${h}h${m}m" else "${m}m", style = MaterialTheme.typography.labelSmall, color = TextSecondary, modifier = Modifier.width(42.dp), textAlign = TextAlign.End)
+                    val timeText = if (h > 0) h.toString() + "h" + m.toString() + "m" else m.toString() + "m"
+                    Text(timeText, style = MaterialTheme.typography.labelSmall, color = WhoopTextSecondary, modifier = Modifier.width(42.dp), textAlign = TextAlign.End)
                 }
             }
         }
@@ -236,23 +260,28 @@ internal fun SleepStagesCard(lightMin: Int, deepMin: Int, remMin: Int, bedtime: 
 
 @Composable
 internal fun WeekChart(values: List<Double>, color: Color, labels: List<String>, title: String) {
-    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardBg), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = WhoopCardBg),
+        border = BorderStroke(1.dp, WhoopCardBorder),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            Text(title, style = MaterialTheme.typography.bodySmall, color = WhoopTextSecondary)
             Spacer(Modifier.height(12.dp))
             val maxVal = values.maxOrNull()?.coerceAtLeast(1.0) ?: 1.0
             Row(modifier = Modifier.fillMaxWidth().height(80.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
                 values.forEachIndexed { i, v ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(1f)) {
-                        if (v > 0) { Text("${v.roundToInt()}", fontSize = 9.sp, color = TextSecondary); Spacer(Modifier.height(2.dp)) }
+                        if (v > 0) { Text(v.roundToInt().toString(), fontSize = 9.sp, color = WhoopTextSecondary); Spacer(Modifier.height(2.dp)) }
                         val barHeight = if (v > 0) (v / maxVal * 50).coerceAtLeast(4.0) else 0.0
                         if (barHeight > 0) {
-                            Canvas(modifier = Modifier.width(20.dp).height(barHeight.dp)) {
-                                drawRoundRect(color = color, size = Size(size.width, size.height), cornerRadius = CornerRadius(6f, 6f))
+                            Canvas(modifier = Modifier.width(16.dp).height(barHeight.dp)) {
+                                drawRoundRect(color = color, size = Size(size.width, size.height), cornerRadius = CornerRadius(8f, 8f))
                             }
                         }
                         Spacer(Modifier.height(4.dp))
-                        Text(labels.getOrElse(i) { "" }, fontSize = 10.sp, color = TextSecondary)
+                        Text(labels.getOrElse(i) { "" }, fontSize = 10.sp, color = WhoopTextSecondary)
                     }
                 }
             }
@@ -262,9 +291,14 @@ internal fun WeekChart(values: List<Double>, color: Color, labels: List<String>,
 
 @Composable
 internal fun WeekLineChart(values: List<Double>, color: Color, labels: List<String>, title: String, unit: String) {
-    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardBg), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = WhoopCardBg),
+        border = BorderStroke(1.dp, WhoopCardBorder),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            Text(title, style = MaterialTheme.typography.bodySmall, color = WhoopTextSecondary)
             Spacer(Modifier.height(12.dp))
             val nonZero = values.filter { it > 0 }
             if (nonZero.isEmpty()) return@Column
@@ -285,13 +319,15 @@ internal fun WeekLineChart(values: List<Double>, color: Color, labels: List<Stri
                     drawLine(color = color, start = points[i - 1], end = points[i], strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
                 }
                 points.forEach { p ->
+                    // Glow dot
+                    drawCircle(color = color.copy(alpha = 0.3f), radius = 8.dp.toPx(), center = p)
                     drawCircle(color = color, radius = 5.dp.toPx(), center = p)
-                    drawCircle(color = CardBg, radius = 3.dp.toPx(), center = p)
+                    drawCircle(color = WhoopCardBg, radius = 3.dp.toPx(), center = p)
                 }
             }
             Spacer(Modifier.height(4.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                labels.forEach { l -> Text(l, fontSize = 10.sp, color = TextSecondary) }
+                labels.forEach { l -> Text(l, fontSize = 10.sp, color = WhoopTextSecondary) }
             }
         }
     }
