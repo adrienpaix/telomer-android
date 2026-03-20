@@ -46,11 +46,11 @@
             </intent-filter>
             <!-- HTTPS deep links -->
             <intent-filter android:autoVerify="true">
-                <action android:name=android.intent.action.VIEW />
-                <category android:name=android.intent.category.DEFAULT />
-                <category android:name=android.intent.category.BROWSABLE />
-                <data android:scheme=https android:host=app.telomer.health android:pathPrefix=/dashboard />
-                <data android:scheme=https android:host=app.telomer.health android:pathPrefix=/bilan />
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="app.telomer.health" android:pathPrefix="/dashboard" />
+                <data android:scheme="https" android:host="app.telomer.health" android:pathPrefix="/bilan" />
             </intent-filter>
         </activity>
 
