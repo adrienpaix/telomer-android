@@ -45,7 +45,16 @@ class NutritionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun searchFood(query: String): Result<List<FoodItem>> = runCatching {
-        api.searchFood(query).items.map { it.toDomain() }
+        val result = api.analyzeText(AnalyzeTextRequest(text = query))
+        listOf(FoodItem(
+            id = java.util.UUID.randomUUID().toString(),
+            name = result.foodName ?: query,
+            caloriesKcal = result.calories,
+            proteinsG = result.proteinG,
+            carbsG = result.carbsG,
+            fatsG = result.fatG,
+            fiberG = result.fiberG,
+        ))
     }
 
     override suspend fun getFoodByBarcode(ean: String): Result<FoodItem> = runCatching {

@@ -29,6 +29,10 @@ data class HealthConnectUiState(
     val backendSyncError: String? = null,
     val error: String? = null,
     val userAge: Int = HealthConnectManager.DEFAULT_AGE,
+    val sleepScore: Int = 0,
+    val recoveryScore: Int = 0,
+    val strainScore: Double = 0.0,
+    val sleepDebtHours: Double = 0.0,
 )
 
 @HiltViewModel

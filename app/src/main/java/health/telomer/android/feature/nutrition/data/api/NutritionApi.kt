@@ -95,6 +95,24 @@ data class AnalyzeTextResponseDto(
 @JsonClass(generateAdapter = true)
 data class AnalyzeBarcodeRequest(val barcode: String)
 
+@JsonClass(generateAdapter = true)
+data class AnalyzePhotoRequest(
+    @Json(name = "image_base64") val imageBase64: String,
+    @Json(name = "mime_type") val mimeType: String = "image/jpeg",
+)
+
+@JsonClass(generateAdapter = true)
+data class AnalyzePhotoResponseDto(
+    @Json(name = "food_name") val foodName: String? = null,
+    val calories: Double? = null,
+    @Json(name = "protein_g") val proteinG: Double? = null,
+    @Json(name = "carbs_g") val carbsG: Double? = null,
+    @Json(name = "fat_g") val fatG: Double? = null,
+    @Json(name = "fiber_g") val fiberG: Double? = null,
+    @Json(name = "quantity_g") val quantityG: Double? = null,
+    val confidence: Double? = null,
+)
+
 // ── Retrofit Interface ──────────────────────────────────
 interface NutritionApi {
 
@@ -112,6 +130,9 @@ interface NutritionApi {
 
     @POST("me/food-log/analyze/text")
     suspend fun analyzeText(@Body request: AnalyzeTextRequest): AnalyzeTextResponseDto
+
+    @POST("me/food-log/analyze/photo")
+    suspend fun analyzePhoto(@Body request: AnalyzePhotoRequest): AnalyzePhotoResponseDto
 
     @POST("me/food-log/analyze/barcode")
     suspend fun analyzeBarcode(@Body request: AnalyzeBarcodeRequest): FoodLogItemDto

@@ -3,6 +3,7 @@ package health.telomer.android.feature.healthconnect.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -218,7 +221,10 @@ private fun WhoopDashboard(
             .format(Instant.ofEpochSecond(epochSec.toLong()))
     }
 
-    val globalScore = computeGlobalScore(steps, exerciseMin, sleepMin, hrResting)
+    val sleepScore = computeSleepScore(sleepMin, sleepDeep, sleepRem, sleepLight)
+    val recoveryScore = computeRecoveryScore(hrResting, lastHRV?.value, lastSpO2?.value, sleepScore)
+    val strainScore = computeStrainScore(steps, activeCals, exerciseMin, zoneMinutes)
+    val sleepDebtHours = computeSleepDebt(sleepMin)
     val dateText = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.FRANCE))
         .replaceFirstChar { it.uppercase() }
 
@@ -227,7 +233,14 @@ private fun WhoopDashboard(
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
         item {
-            DashboardHeader(onBack = onBack, dateText = dateText, globalScore = globalScore)
+            DashboardHeader(
+                onBack = onBack,
+                dateText = dateText,
+                sleepScore = sleepScore,
+                recoveryScore = recoveryScore,
+                strainScore = strainScore,
+                sleepDebtHours = sleepDebtHours,
+            )
         }
 
         state.error?.let { error ->
@@ -323,7 +336,14 @@ private fun WhoopDashboard(
 }
 
 @Composable
-private fun DashboardHeader(onBack: () -> Unit, dateText: String, globalScore: Int) {
+private fun DashboardHeader(
+    onBack: () -> Unit,
+    dateText: String,
+    sleepScore: Int,
+    recoveryScore: Int,
+    strainScore: Double,
+    sleepDebtHours: Double,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -339,9 +359,64 @@ private fun DashboardHeader(onBack: () -> Unit, dateText: String, globalScore: I
             }
             Text(dateText, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
             Spacer(Modifier.height(20.dp))
-            ScoreCircle(score = globalScore, modifier = Modifier.size(160.dp))
-            Spacer(Modifier.height(8.dp))
-            Text("Score du jour", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            // 3 score circles: Sommeil, Récupération, Effort
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ScoreCircle(score = sleepScore, modifier = Modifier.size(100.dp))
+                    Spacer(Modifier.height(4.dp))
+                    Text("😴 Sommeil", style = MaterialTheme.typography.labelSmall, color = SleepPurple)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ScoreCircle(score = recoveryScore, modifier = Modifier.size(100.dp))
+                    Spacer(Modifier.height(4.dp))
+                    Text("💚 Récupération", style = MaterialTheme.typography.labelSmall, color = ActivityGreen)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    StrainCircle(strain = strainScore, modifier = Modifier.size(100.dp))
+                    Spacer(Modifier.height(4.dp))
+                    Text("🔥 Effort", style = MaterialTheme.typography.labelSmall, color = TelomerOrange)
+                }
+            }
+            // Dette de sommeil
+            if (sleepDebtHours > 0.0) {
+                Spacer(Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("💤 ", fontSize = 16.sp)
+                    Text(
+                        "Dette : ${String.format("%.1f", sleepDebtHours)}h",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (sleepDebtHours > 2.0) CardioRed else TelomerOrange,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StrainCircle(strain: Double, modifier: Modifier = Modifier) {
+    Box(contentAlignment = Alignment.Center, modifier = modifier) {
+        Canvas(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+            val strokeWidth = 12.dp.toPx()
+            val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            val fraction = (strain / 21.0).coerceIn(0.0, 1.0).toFloat()
+            val sweepAngle = 270f * fraction
+            drawArc(color = BarTrack, startAngle = 135f, sweepAngle = 270f, useCenter = false, style = stroke)
+            val progressColor = when {
+                strain >= 18 -> CardioRed
+                strain >= 14 -> TelomerOrange
+                strain >= 8 -> ActivityGreen
+                else -> TelomerCyan
+            }
+            drawArc(color = progressColor, startAngle = 135f, sweepAngle = sweepAngle, useCenter = false, style = stroke)
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(String.format("%.1f", strain), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("/21", fontSize = 12.sp, color = TextSecondary)
         }
     }
 }
@@ -350,12 +425,81 @@ private fun DashboardHeader(onBack: () -> Unit, dateText: String, globalScore: I
 //  HELPER FUNCTIONS
 // ══════════════════════════════════════════════════════════════════
 
-private fun computeGlobalScore(steps: Int, exerciseMin: Int, sleepMin: Int, hrResting: Int?): Int {
-    val stepsScore = ((steps / 10_000f) * 100).coerceAtMost(100f)
-    val exerciseScore = ((exerciseMin / 30f) * 100).coerceAtMost(100f)
-    val sleepScore = ((sleepMin / 480f) * 100).coerceAtMost(100f)
-    val hrScore = when { hrResting == null -> 50f; hrResting in 50..70 -> 100f; hrResting in 71..80 -> 70f; else -> 40f }
-    return ((stepsScore + exerciseScore + sleepScore + hrScore) / 4).roundToInt().coerceIn(0, 100)
+/**
+ * Score de sommeil (0-100) — inspiré Whoop
+ * Basé sur : durée totale, % sommeil profond, % REM
+ */
+private fun computeSleepScore(sleepMin: Int, deepMin: Int, remMin: Int, lightMin: Int): Int {
+    if (sleepMin == 0) return 0
+    val totalTarget = 480 // 8h
+    val durationScore = ((sleepMin.toFloat() / totalTarget) * 40).coerceAtMost(40f)
+    val totalSleep = (deepMin + remMin + lightMin).coerceAtLeast(1)
+    val deepPct = deepMin.toFloat() / totalSleep
+    val remPct = remMin.toFloat() / totalSleep
+    val deepScore = when {
+        deepPct in 0.15f..0.25f -> 30f
+        deepPct in 0.10f..0.30f -> 20f
+        else -> 10f
+    }
+    val remScore = when {
+        remPct in 0.20f..0.25f -> 30f
+        remPct in 0.15f..0.30f -> 20f
+        else -> 10f
+    }
+    return (durationScore + deepScore + remScore).roundToInt().coerceIn(0, 100)
+}
+
+/**
+ * Score de récupération (0-100) — inspiré Whoop
+ * Basé sur : FC repos, VFC (HRV), SpO2, qualité sommeil
+ */
+private fun computeRecoveryScore(hrResting: Int?, hrvMs: Double?, spo2: Double?, sleepScore: Int): Int {
+    var score = 0f
+    score += when {
+        hrResting == null -> 15f
+        hrResting <= 55 -> 30f
+        hrResting in 56..65 -> 25f
+        hrResting in 66..75 -> 18f
+        else -> 10f
+    }
+    score += when {
+        hrvMs == null -> 15f
+        hrvMs >= 80 -> 30f
+        hrvMs >= 50 -> 22f
+        hrvMs >= 30 -> 15f
+        else -> 8f
+    }
+    score += when {
+        spo2 == null -> 5f
+        spo2 >= 97 -> 10f
+        spo2 >= 95 -> 7f
+        else -> 3f
+    }
+    score += (sleepScore * 0.3f)
+    return score.roundToInt().coerceIn(0, 100)
+}
+
+/**
+ * Score d'effort (0-21, échelle Whoop) — Strain
+ */
+private fun computeStrainScore(steps: Int, activeCals: Int, exerciseMin: Int, zoneMinutes: List<Int>): Double {
+    val zoneWeight = if (zoneMinutes.size >= 5) {
+        zoneMinutes[0] * 0.1 + zoneMinutes[1] * 0.3 + zoneMinutes[2] * 0.6 + zoneMinutes[3] * 1.0 + zoneMinutes[4] * 1.5
+    } else 0.0
+    val stepsContrib = (steps / 1000.0).coerceAtMost(5.0)
+    val calsContrib = (activeCals / 200.0).coerceAtMost(5.0)
+    val exerciseContrib = (exerciseMin / 15.0).coerceAtMost(5.0)
+    val zoneContrib = (zoneWeight / 30.0).coerceAtMost(6.0)
+    return (stepsContrib + calsContrib + exerciseContrib + zoneContrib).coerceIn(0.0, 21.0)
+}
+
+/**
+ * Dette de sommeil estimée (en heures)
+ */
+private fun computeSleepDebt(sleepMinToday: Int): Double {
+    val targetMin = 480
+    val deficit = (targetMin - sleepMinToday).coerceAtLeast(0)
+    return deficit / 60.0
 }
 
 private fun stepsStatus(steps: Int): String = when { steps >= 10_000 -> "Objectif atteint"; steps >= 6_000 -> "En bonne voie"; else -> "Insuffisant" }

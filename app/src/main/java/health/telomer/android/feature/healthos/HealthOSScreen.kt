@@ -203,7 +203,8 @@ private fun PillarCard(
 @Composable
 private fun InflammationBar(inflammation: InflammationResponse?) {
     if (inflammation == null) return
-    val index = inflammation.index ?: return
+    val rawIndex = inflammation.index ?: return
+    val index = 100.0 - rawIndex
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -212,10 +213,10 @@ private fun InflammationBar(inflammation: InflammationResponse?) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Whatshot, contentDescription = "Inflammation", tint = TelomerAmber, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Whatshot, contentDescription = "Anti-inflammation", tint = TelomerGreen, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Inflammation",
+                    "Score anti-inflammation",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = TelomerGray900,
@@ -256,7 +257,7 @@ private fun InflammationBar(inflammation: InflammationResponse?) {
                         .clip(RoundedCornerShape(5.dp))
                         .background(
                             Brush.horizontalGradient(
-                                listOf(TelomerGreen, Color(0xFFFBBF24), TelomerRed)
+                                listOf(TelomerRed, Color(0xFFFBBF24), TelomerGreen)
                             )
                         )
                 )
@@ -274,8 +275,8 @@ private fun InflammationBar(inflammation: InflammationResponse?) {
                         .clip(CircleShape)
                         .background(
                             when {
-                                index <= 30 -> TelomerGreen
-                                index <= 60 -> TelomerAmber
+                                index >= 70 -> TelomerGreen
+                                index >= 40 -> TelomerAmber
                                 else -> TelomerRed
                             }
                         )
@@ -285,7 +286,7 @@ private fun InflammationBar(inflammation: InflammationResponse?) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("0", style = MaterialTheme.typography.labelSmall, color = TelomerGray500)
                 Text(
-                    "Index: $index",
+                    "Score: ${String.format("%.1f", index)}",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = TelomerGray900,

@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import health.telomer.android.core.ui.theme.*
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.foundation.Canvas
 import health.telomer.android.feature.healthos.ScoreCircle
 import java.time.LocalDate
 import java.time.ZonedDateTime
@@ -124,6 +127,61 @@ fun DashboardScreen(
                 }
 
                 Spacer(Modifier.height(12.dp))
+
+                // ── Health Connect Scores (Whoop-style) ──
+                if (state.sleepScore > 0 || state.recoveryScore > 0 || state.strainScore > 0.0) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        DashboardScoreCard(
+                            label = "Sommeil",
+                            score = state.sleepScore,
+                            emoji = "😴",
+                            color = Color(0xFF8B5CF6),
+                            modifier = Modifier.weight(1f),
+                        )
+                        DashboardScoreCard(
+                            label = "Récupération",
+                            score = state.recoveryScore,
+                            emoji = "💚",
+                            color = TelomerGreen,
+                            modifier = Modifier.weight(1f),
+                        )
+                        DashboardStrainCard(
+                            label = "Effort",
+                            strain = state.strainScore,
+                            emoji = "🔥",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (state.sleepDebtHours > 0.0) {
+                        Spacer(Modifier.height(4.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = TelomerWhite),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("💤", style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text("Dette de sommeil", style = MaterialTheme.typography.bodySmall, color = TelomerGray500)
+                                    Text(
+                                        "${String.format("%.1f", state.sleepDebtHours)}h",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (state.sleepDebtHours > 2.0) TelomerRed else TelomerOrange,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
 
                 // Next appointment card
                 DashboardCard(
@@ -317,6 +375,77 @@ private fun QuickActionButton(
                 color = TelomerGray900,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
+        }
+    }
+}
+
+
+@Composable
+private fun DashboardScoreCard(
+    label: String,
+    score: Int,
+    emoji: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = TelomerWhite),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(emoji, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "$score",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = when {
+                    score >= 80 -> TelomerGreen
+                    score >= 60 -> TelomerOrange
+                    else -> TelomerRed
+                },
+            )
+            Text(label, style = MaterialTheme.typography.labelSmall, color = TelomerGray500)
+        }
+    }
+}
+
+@Composable
+private fun DashboardStrainCard(
+    label: String,
+    strain: Double,
+    emoji: String,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = TelomerWhite),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(emoji, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                String.format("%.1f", strain),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = when {
+                    strain >= 18.0 -> TelomerRed
+                    strain >= 14.0 -> TelomerOrange
+                    strain >= 8.0 -> TelomerGreen
+                    else -> TelomerBlue
+                },
+            )
+            Text("$label /21", style = MaterialTheme.typography.labelSmall, color = TelomerGray500)
         }
     }
 }
