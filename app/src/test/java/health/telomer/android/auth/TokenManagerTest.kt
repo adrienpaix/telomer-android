@@ -13,10 +13,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 
 /**
- * Tests TokenManager — logique de cache m\u00e9moire et d'expiration.
+ * Tests TokenManager - logique de cache memoire et d'expiration.
  *
- * Note : EncryptedSharedPreferences n\u00e9cessite le runtime Android (Keystore).
- * On teste donc la logique pure via simulation du cache m\u00e9moire de TokenManager.
+ * Note : EncryptedSharedPreferences necessite le runtime Android (Keystore).
+ * On teste donc la logique pure via simulation du cache memoire de TokenManager.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TokenManagerTest {
@@ -27,14 +27,12 @@ class TokenManagerTest {
     private val REFRESH_TOKEN = "eyJhbGciOiJSUzI1NiJ9.test_refresh_token"
     private val ID_TOKEN = "eyJhbGciOiJSUzI1NiJ9.test_id_token"
 
-    // On simule le cache m\u00e9moire interne de TokenManager
     private var accessTokenCache: String? = null
     private var refreshTokenCache: String? = null
     private var idTokenCache: String? = null
     private var expiresAtMillis: Long = 0L
     private var isLoggedIn: Boolean = false
 
-    /** Simule TokenManager.saveTokens() */
     private fun simulateSaveTokens(
         accessToken: String,
         refreshToken: String? = null,
@@ -48,7 +46,6 @@ class TokenManagerTest {
         isLoggedIn = true
     }
 
-    /** Simule TokenManager.clear() */
     private fun simulateClear() {
         accessTokenCache = null
         refreshTokenCache = null
@@ -57,7 +54,6 @@ class TokenManagerTest {
         isLoggedIn = false
     }
 
-    /** Simule TokenManager.isExpired() */
     private fun simulateIsExpired(): Boolean {
         if (expiresAtMillis == 0L) return true
         return System.currentTimeMillis() >= (expiresAtMillis - 60_000L)
@@ -83,13 +79,13 @@ class TokenManagerTest {
     }
 
     @Test
-    fun `refreshToken est stock\u00e9 correctement dans le cache`() {
+    fun `refreshToken est stocke correctement dans le cache`() {
         simulateSaveTokens(accessToken = ACCESS_TOKEN, refreshToken = REFRESH_TOKEN)
         assertEquals(REFRESH_TOKEN, refreshTokenCache)
     }
 
     @Test
-    fun `idToken est stock\u00e9 correctement dans le cache`() {
+    fun `idToken est stocke correctement dans le cache`() {
         simulateSaveTokens(accessToken = ACCESS_TOKEN, idToken = ID_TOKEN)
         assertEquals(ID_TOKEN, idTokenCache)
     }
@@ -99,10 +95,10 @@ class TokenManagerTest {
         simulateSaveTokens(accessToken = ACCESS_TOKEN, refreshToken = REFRESH_TOKEN, idToken = ID_TOKEN)
         assertNotNull(accessTokenCache)
         simulateClear()
-        assertNull("access token null apr\u00e8s clear", accessTokenCache)
-        assertNull("refresh token null apr\u00e8s clear", refreshTokenCache)
-        assertNull("id token null apr\u00e8s clear", idTokenCache)
-        assertFalse("isLoggedIn false apr\u00e8s clear", isLoggedIn)
+        assertNull("access token null apres clear", accessTokenCache)
+        assertNull("refresh token null apres clear", refreshTokenCache)
+        assertNull("id token null apres clear", idTokenCache)
+        assertFalse("isLoggedIn false apres clear", isLoggedIn)
     }
 
     @Test
@@ -124,33 +120,32 @@ class TokenManagerTest {
     fun `token non expire avec expiry future`() {
         simulateSaveTokens(
             accessToken = ACCESS_TOKEN,
-            expiresAt = System.currentTimeMillis() + 3_600_000L, // +1h
+            expiresAt = System.currentTimeMillis() + 3_600_000L,
         )
-        assertFalse("Token valide dans 1h ne doit pas \u00eatre expir\u00e9", simulateIsExpired())
+        assertFalse("Token valide dans 1h ne doit pas etre expire", simulateIsExpired())
     }
 
     @Test
     fun `token expire avec expiry passe`() {
         simulateSaveTokens(
             accessToken = ACCESS_TOKEN,
-            expiresAt = System.currentTimeMillis() - 1_000L, // -1s
+            expiresAt = System.currentTimeMillis() - 1_000L,
         )
-        assertTrue("Token expir\u00e9 depuis 1s", simulateIsExpired())
+        assertTrue("Token expire depuis 1s", simulateIsExpired())
     }
 
     @Test
     fun `token expirant dans moins de 60s est considere expire marge de securite`() {
         simulateSaveTokens(
             accessToken = ACCESS_TOKEN,
-            expiresAt = System.currentTimeMillis() + 30_000L, // +30s
+            expiresAt = System.currentTimeMillis() + 30_000L,
         )
-        assertTrue("Token expirant dans 30s consid\u00e9r\u00e9 expir\u00e9 (marge 60s)", simulateIsExpired())
+        assertTrue("Token expirant dans 30s considere expire (marge 60s)", simulateIsExpired())
     }
 
     @Test
     fun `token sans expiry est considere expire`() {
-        // expiresAtMillis = 0 par d\u00e9faut
-        assertTrue("Token sans expiry consid\u00e9r\u00e9 expir\u00e9", simulateIsExpired())
+        assertTrue("Token sans expiry considere expire", simulateIsExpired())
     }
 
     @Test
@@ -165,9 +160,7 @@ class TokenManagerTest {
     fun `saveTokens sans refreshToken preserve l ancien refreshToken`() {
         simulateSaveTokens(accessToken = ACCESS_TOKEN, refreshToken = REFRESH_TOKEN)
         assertEquals(REFRESH_TOKEN, refreshTokenCache)
-        // Nouveau saveTokens sans refreshToken
         simulateSaveTokens(accessToken = "new_access_token")
-        // refreshToken devrait \u00eatre pr\u00e9serv\u00e9 (null refreshToken ne remplace pas)
-        assertEquals("Refresh token pr\u00e9serv\u00e9", REFRESH_TOKEN, refreshTokenCache)
+        assertEquals("Refresh token preserve", REFRESH_TOKEN, refreshTokenCache)
     }
 }
