@@ -122,14 +122,36 @@ fun VideoCallScreen(
     }
 }
 
+/**
+ * Composable that properly renders a LiveKit VideoTrack using a TextureViewRenderer.
+ * Each instance owns its own EglBase and renderer lifecycle.
+ * Track attach/detach is handled via DisposableEffect keyed on the track instance.
+ */
 @Composable
 private fun VideoTrackRenderer(
     videoTrack: VideoTrack?,
     modifier: Modifier = Modifier,
     mirror: Boolean = false,
+    scalingType: RendererCommon.ScalingType = RendererCommon.ScalingType.SCALE_ASPECT_FIT,
 ) {
     val eglBase = remember { EglBase.create() }
     val rendererRef = remember { mutableStateOf<TextureViewRenderer?>(null) }
+
+    AndroidView(
+        factory = { ctx ->
+            TextureViewRenderer(ctx).apply {
+                init(eglBase.eglBaseContext, null)
+                setMirror(mirror)
+                setScalingType(scalingType)
+                rendererRef.value = this
+            }
+        },
+        modifier = modifier,
+        update = { renderer ->
+            renderer.setMirror(mirror)
+            renderer.setScalingType(scalingType)
+        },
+    )
 
     DisposableEffect(videoTrack) {
         val renderer = rendererRef.value
@@ -140,23 +162,15 @@ private fun VideoTrackRenderer(
             if (renderer != null && videoTrack != null) {
                 videoTrack.removeRenderer(renderer)
             }
-            if (videoTrack == null) eglBase.release()
         }
     }
 
-    AndroidView(
-        factory = { ctx ->
-            TextureViewRenderer(ctx).apply {
-                init(eglBase.eglBaseContext, null)
-                setMirror(mirror)
-                setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-                rendererRef.value = this
-                videoTrack?.addRenderer(this)
-            }
-        },
-        modifier = modifier,
-        update = { renderer -> renderer.setMirror(mirror) },
-    )
+    DisposableEffect(Unit) {
+        onDispose {
+            rendererRef.value?.release()
+            eglBase.release()
+        }
+    }
 }
 
 @Composable
@@ -167,46 +181,17 @@ private fun VideoCallContent(
     onToggleCamera: () -> Unit,
     onHangUp: () -> Unit,
 ) {
-    val eglBase = remember { EglBase.create() }
-    val remoteRendererRef = remember { mutableStateOf<TextureViewRenderer?>(null) }
-    val localRendererRef = remember { mutableStateOf<TextureViewRenderer?>(null) }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            state.remoteVideoTrack?.removeRenderer(remoteRendererRef.value ?: return@onDispose)
-            state.localVideoTrack?.removeRenderer(localRendererRef.value ?: return@onDispose)
-            remoteRendererRef.value?.release()
-            localRendererRef.value?.release()
-            eglBase.release()
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         // Remote video (full screen) or waiting screen
         if (state.remoteParticipantConnected && state.remoteVideoTrack != null) {
-            AndroidView(
-                factory = { ctx ->
-                    TextureViewRenderer(ctx).apply {
-                        init(eglBase.eglBaseContext, null)
-                        setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-                        setMirror(false)
-                        remoteRendererRef.value = this
-                        state.remoteVideoTrack.addRenderer(this)
-                    }
-                },
+            VideoTrackRenderer(
+                videoTrack = state.remoteVideoTrack,
                 modifier = Modifier.fillMaxSize(),
+                mirror = false,
+                scalingType = RendererCommon.ScalingType.SCALE_ASPECT_FIT,
             )
         } else {
             WaitingForDoctor()
-        }
-
-        // Reattach remote track when it changes
-        LaunchedEffect(state.remoteVideoTrack) {
-            val renderer = remoteRendererRef.value ?: return@LaunchedEffect
-            // Remove old
-            renderer.clearImage()
-            // Add new
-            state.remoteVideoTrack?.addRenderer(renderer)
         }
 
         // Status bar at top
@@ -231,23 +216,12 @@ private fun VideoCallContent(
                     .clip(RoundedCornerShape(12.dp))
                     .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
             ) {
-                AndroidView(
-                    factory = { ctx ->
-                        TextureViewRenderer(ctx).apply {
-                            init(eglBase.eglBaseContext, null)
-                            setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
-                            setMirror(true)
-                            localRendererRef.value = this
-                            state.localVideoTrack?.addRenderer(this)
-                        }
-                    },
+                VideoTrackRenderer(
+                    videoTrack = state.localVideoTrack,
                     modifier = Modifier.fillMaxSize(),
+                    mirror = true,
+                    scalingType = RendererCommon.ScalingType.SCALE_ASPECT_FILL,
                 )
-
-                LaunchedEffect(state.localVideoTrack) {
-                    val renderer = localRendererRef.value ?: return@LaunchedEffect
-                    state.localVideoTrack?.addRenderer(renderer)
-                }
             }
         }
 

@@ -261,7 +261,7 @@ private fun InflammationBar(inflammation: InflammationResponse?) {
                         )
                 )
                 // Indicator
-                val fraction = (index.coerceIn(0, 100)) / 100f
+                val fraction = (index.coerceIn(0.0, 100.0) / 100.0).toFloat()
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(fraction)

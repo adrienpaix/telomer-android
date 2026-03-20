@@ -11,12 +11,18 @@ data class HealthOSDashboardResponse(
     val inflammation: InflammationResponse?,
     val pillars: List<PillarSummaryResponse>,
     @Json(name = "computed_at") val computedAt: String?,
+    @Json(name = "biological_age") val biologicalAge: Double? = null,
+    @Json(name = "biological_age_source") val biologicalAgeSource: String? = null,
+    @Json(name = "biological_age_missing") val biologicalAgeMissing: List<String>? = null,
+    @Json(name = "chronological_age") val chronologicalAge: Int? = null,
+    @Json(name = "adherence_pct") val adherencePct: Double? = null,
 )
 
 @JsonClass(generateAdapter = true)
 data class InflammationResponse(
-    val index: Int?,
+    val index: Double?,
     val level: String?,
+    @Json(name = "pillar_impact") val pillarImpact: Map<String, Double>? = null,
 )
 
 @JsonClass(generateAdapter = true)
