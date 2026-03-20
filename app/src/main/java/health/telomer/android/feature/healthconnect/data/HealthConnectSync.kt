@@ -45,10 +45,11 @@ class HealthConnectSync @Inject constructor(
     /**
      * Read metrics from Health Connect and push them to the API.
      * @param days How many days to sync (default 1 = last 24 h).
+     * @param userAge User age for HR zone computation.
      * @return total synced count (from server response).
      */
-    suspend fun sync(days: Int = 1): SyncResult {
-        val metrics = manager.readLastDays(days)
+    suspend fun sync(days: Int = 1, userAge: Int = HealthConnectManager.DEFAULT_AGE): SyncResult {
+        val metrics = manager.readLastDays(days, userAge)
         if (metrics.isEmpty()) return SyncResult(0, 0)
 
         var totalSynced = 0
@@ -68,11 +69,11 @@ class HealthConnectSync @Inject constructor(
     /**
      * Auto-sync: sync the last 24 h if last sync was more than 1 h ago (or never).
      */
-    suspend fun autoSyncIfNeeded(): SyncResult? {
+    suspend fun autoSyncIfNeeded(userAge: Int = HealthConnectManager.DEFAULT_AGE): SyncResult? {
         val lastEpoch = getLastSyncEpoch()
         val oneHourAgo = Instant.now().epochSecond - 3600
         if (lastEpoch != null && lastEpoch > oneHourAgo) return null
-        return sync(days = 1)
+        return sync(days = 1, userAge = userAge)
     }
 
     private fun HealthMetric.toPayload() = MetricPayload(

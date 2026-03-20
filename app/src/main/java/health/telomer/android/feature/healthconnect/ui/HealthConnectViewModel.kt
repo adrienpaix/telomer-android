@@ -26,6 +26,7 @@ data class HealthConnectUiState(
     val lastSyncEpoch: Long? = null,
     val syncResult: SyncResult? = null,
     val error: String? = null,
+    val userAge: Int = HealthConnectManager.DEFAULT_AGE,
 )
 
 @HiltViewModel
@@ -70,8 +71,9 @@ class HealthConnectViewModel @Inject constructor(
     fun loadData() {
         viewModelScope.launch {
             try {
-                val today = manager.readToday()
-                val week = manager.readLastDays(7)
+                val age = _state.value.userAge
+                val today = manager.readToday(age)
+                val week = manager.readLastDays(7, age)
                 val lastSync = sync.getLastSyncEpoch()
                 _state.update {
                     it.copy(
@@ -91,7 +93,7 @@ class HealthConnectViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isSyncing = true, error = null) }
             try {
-                val result = sync.sync(days = 7)
+                val result = sync.sync(days = 7, userAge = _state.value.userAge)
                 _state.update {
                     it.copy(
                         isSyncing = false,
@@ -111,7 +113,7 @@ class HealthConnectViewModel @Inject constructor(
     private fun autoSync() {
         viewModelScope.launch {
             try {
-                sync.autoSyncIfNeeded()
+                sync.autoSyncIfNeeded(_state.value.userAge)
                 val lastSync = sync.getLastSyncEpoch()
                 _state.update { it.copy(lastSyncEpoch = lastSync) }
             } catch (_: Exception) { /* silent */ }
