@@ -16,6 +16,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import health.telomer.android.auth.AuthViewModel
 import health.telomer.android.auth.AuthState
 import health.telomer.android.auth.LoginScreen
@@ -171,8 +172,14 @@ private fun MainNavigation() {
             modifier = Modifier.padding(padding),
         ) {
             // Bottom tabs
-            composable(BottomTab.Dashboard.route) { DashboardScreen(navController) }
-            composable(BottomTab.HealthOS.route) { HealthOSScreen(navController) }
+            composable(
+                route = BottomTab.Dashboard.route,
+                deepLinks = listOf(navDeepLink { uriPattern = https://app.telomer.health/dashboard }),
+            ) { DashboardScreen(navController) }
+            composable(
+                route = BottomTab.HealthOS.route,
+                deepLinks = listOf(navDeepLink { uriPattern = https://app.telomer.health/bilan }),
+            ) { HealthOSScreen(navController) }
             composable(BottomTab.Nutrition.route) { NutritionJournalScreen(navController) }
             composable(BottomTab.ActionPlan.route) { ActionPlanScreen(navController) }
 

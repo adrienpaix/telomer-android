@@ -2,6 +2,7 @@ package health.telomer.android.feature.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,11 +14,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import health.telomer.android.BuildConfig
+import health.telomer.android.core.security.BiometricHelper
 import health.telomer.android.core.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -178,6 +181,55 @@ fun ProfileScreen(
                     state.error?.let {
                         Spacer(Modifier.height(12.dp))
                         Text(it, color = TelomerRed, style = MaterialTheme.typography.bodySmall)
+                    }
+
+
+                    // Security section
+                    var biometricEnabled by remember { mutableStateOf(false) }
+                    val context = LocalContext.current
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        colors = CardDefaults.cardColors(containerColor = TelomerWhite),
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                Sécurité,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        Déverrouillage biométrique,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                    Text(
+                                        Empreinte ou Face ID pour accéder à l'app,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                                Switch(
+                                    checked = biometricEnabled,
+                                    onCheckedChange = { enabled ->
+                                        biometricEnabled = if (enabled && BiometricHelper.isAvailable(context)) {
+                                            true
+                                        } else {
+                                            false
+                                        }
+                                    },
+                                )
+                            }
+                        }
                     }
 
                     Spacer(Modifier.height(32.dp))

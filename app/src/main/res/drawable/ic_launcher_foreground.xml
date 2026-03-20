@@ -4,25 +4,8 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- T stylisé blanc, centré, proportionné -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,34 L54,74 M44,39 Q54,30 64,39 M44,49 Q54,58 64,49 M44,59 Q54,50 64,59 M44,69 Q54,78 64,69"
-        android:strokeWidth="3"
-        android:strokeColor="#FFFFFF"/>
-    <path
-        android:pathData="M54,34 L54,74"
-        android:strokeWidth="2.5"
-        android:strokeColor="#FFFFFF"/>
-    <path
-        android:pathData="M46,34 L46,74"
-        android:strokeWidth="2.5"
-        android:strokeColor="#FFFFFF"/>
-    <path
-        android:pathData="M62,34 L62,74"
-        android:strokeWidth="2.5"
-        android:strokeColor="#FFFFFF"/>
-    <path
-        android:pathData="M46,40 L62,40 M46,48 L62,48 M46,56 L62,56 M46,64 L62,64"
-        android:strokeWidth="1.5"
-        android:strokeColor="#FFFFFF"/>
+        android:pathData="M22,30 L86,30 L86,44 L62,44 L62,78 L46,78 L46,44 L22,44 Z"/>
 </vector>
