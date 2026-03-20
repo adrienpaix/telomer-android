@@ -1,5 +1,6 @@
 package health.telomer.android.feature.healthos
 
+import kotlin.math.roundToInt
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
