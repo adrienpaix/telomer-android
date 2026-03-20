@@ -3,8 +3,8 @@ package health.telomer.android.feature.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import health.telomer.android.core.data.api.TelomerApi
 import health.telomer.android.core.data.api.models.AppointmentResponse
+import health.telomer.android.feature.dashboard.data.DashboardRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +26,7 @@ data class DashboardUiState(
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val api: TelomerApi,
+    private val repository: DashboardRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -41,10 +41,10 @@ class DashboardViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 coroutineScope {
-                    val profileDeferred = async { api.getMyProfile() }
-                    val apptsDeferred = async { runCatching { api.getMyAppointments() }.getOrElse { emptyList() } }
-                    val messagesDeferred = async { runCatching { api.getConversations() }.getOrElse { emptyList() } }
-                    val healthDeferred = async { runCatching { api.getHealthOSDashboard() }.getOrNull() }
+                    val profileDeferred = async { repository.getProfile() }
+                    val apptsDeferred = async { repository.getUpcomingAppointments() ?: emptyList() }
+                    val messagesDeferred = async { repository.getConversations() ?: emptyList() }
+                    val healthDeferred = async { repository.getHealthOSDashboard() }
 
                     val profile = profileDeferred.await()
                     val appointments = apptsDeferred.await()

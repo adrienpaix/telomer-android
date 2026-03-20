@@ -3,8 +3,8 @@ package health.telomer.android.feature.messaging
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import health.telomer.android.core.data.api.TelomerApi
 import health.telomer.android.core.data.api.models.ConversationResponse
+import health.telomer.android.feature.messaging.data.MessagingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +19,7 @@ data class MessagingUiState(
 
 @HiltViewModel
 class MessagingViewModel @Inject constructor(
-    private val api: TelomerApi,
+    private val repository: MessagingRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MessagingUiState())
@@ -31,7 +31,7 @@ class MessagingViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val conversations = api.getConversations()
+                val conversations = repository.getConversations()
                 _uiState.value = MessagingUiState(isLoading = false, conversations = conversations)
             } catch (e: Exception) {
                 _uiState.value = MessagingUiState(isLoading = false, error = e.message)

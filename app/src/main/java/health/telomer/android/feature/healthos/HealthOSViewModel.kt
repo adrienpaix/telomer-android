@@ -3,8 +3,8 @@ package health.telomer.android.feature.healthos
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import health.telomer.android.core.data.api.TelomerApi
 import health.telomer.android.core.data.api.models.*
+import health.telomer.android.feature.healthos.data.HealthOSRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +21,7 @@ data class HealthOSUiState(
 
 @HiltViewModel
 class HealthOSViewModel @Inject constructor(
-    private val api: TelomerApi,
+    private val repository: HealthOSRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HealthOSUiState())
@@ -33,7 +33,7 @@ class HealthOSViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val dashboard = api.getHealthOSDashboard()
+                val dashboard = repository.getDashboard()
                 _uiState.value = _uiState.value.copy(isLoading = false, dashboard = dashboard)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
@@ -45,7 +45,7 @@ class HealthOSViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(selectedPillarCode = code, selectedPillar = null)
             try {
-                val detail = api.getHealthOSPillar(code)
+                val detail = repository.getPillar(code)
                 _uiState.value = _uiState.value.copy(selectedPillar = detail)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(

@@ -7,6 +7,7 @@ import dagger.hilt.components.SingletonComponent
 import health.telomer.android.BuildConfig
 import health.telomer.android.auth.AuthManager
 import health.telomer.android.core.data.api.TelomerApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
@@ -34,7 +35,9 @@ object NetworkModule {
                     .build()
             )
             .addInterceptor { chain ->
-                val token = runBlocking { authManager.getValidAccessToken() }
+                // runBlocking on Dispatchers.IO — safe: OkHttp interceptors run on IO threads,
+                // never on the main thread. Dispatchers.IO avoids starvation of the calling thread.
+                val token = runBlocking(Dispatchers.IO) { authManager.getValidAccessToken() }
                 val request = if (token != null) {
                     chain.request().newBuilder()
                         .header("Authorization", "Bearer $token")

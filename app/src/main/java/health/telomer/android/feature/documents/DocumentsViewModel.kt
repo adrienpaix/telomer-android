@@ -5,8 +5,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import health.telomer.android.core.data.api.TelomerApi
 import health.telomer.android.core.data.api.models.DocumentResponse
+import health.telomer.android.feature.documents.data.DocumentsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +26,7 @@ data class DocumentsUiState(
 
 @HiltViewModel
 class DocumentsViewModel @Inject constructor(
-    private val api: TelomerApi,
+    private val repository: DocumentsRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DocumentsUiState())
@@ -38,7 +38,7 @@ class DocumentsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val docs = api.getMyDocuments()
+                val docs = repository.getDocuments()
                 _uiState.value = DocumentsUiState(
                     isLoading = false,
                     documents = docs.sortedByDescending { it.uploadedAt ?: it.documentDate },
@@ -61,7 +61,7 @@ class DocumentsViewModel @Inject constructor(
                 val requestBody = tempFile.asRequestBody(mimeType.toMediaTypeOrNull())
                 val part = MultipartBody.Part.createFormData("file", tempFile.name, requestBody)
 
-                api.uploadDocument(part)
+                repository.uploadDocument(part)
                 tempFile.delete()
                 load()
             } catch (e: Exception) {

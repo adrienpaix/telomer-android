@@ -20,7 +20,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.compose.ui.graphics.Brush
 import health.telomer.android.core.ui.theme.*
 import health.telomer.android.feature.healthos.ScoreCircle
 import java.time.LocalDate
@@ -39,9 +38,20 @@ fun DashboardScreen(
         DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH)
     ).replaceFirstChar { it.uppercase() }
 
+    // Memoized navigation lambdas — stable across recompositions
+    val onRetry = remember(viewModel) { { viewModel.loadDashboard() } }
+    val onNavigateToHealthOS = remember(navController) { { navController.navigate("healthos") } }
+    val onNavigateToAppointments = remember(navController) { { navController.navigate("appointments") } }
+    val onNavigateToMessages = remember(navController) { { navController.navigate("messages") } }
+    val onNavigateToActionPlan = remember(navController) { { navController.navigate("action-plan") } }
+    val onNavigateToQuestionnaire = remember(navController) { { navController.navigate("questionnaire") } }
+    val onNavigateToBooking = remember(navController) { { navController.navigate("appointment_booking") } }
+    val onNavigateToDocuments = remember(navController) { { navController.navigate("documents") } }
+    val onNavigateToPrescriptions = remember(navController) { { navController.navigate("prescriptions") } }
+
     PullToRefreshBox(
         isRefreshing = state.isLoading,
-        onRefresh = { viewModel.loadDashboard() },
+        onRefresh = onRetry,
         modifier = Modifier
             .fillMaxSize()
             .background(TelomerBackground),
@@ -57,7 +67,7 @@ fun DashboardScreen(
                     Spacer(Modifier.height(12.dp))
                     Text(state.error!!, color = TelomerGray500)
                     Spacer(Modifier.height(12.dp))
-                    TextButton(onClick = { viewModel.loadDashboard() }) {
+                    TextButton(onClick = onRetry) {
                         Text("Réessayer")
                     }
                 }
@@ -85,7 +95,7 @@ fun DashboardScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { navController.navigate("healthos") },
+                        .clickable(onClick = onNavigateToHealthOS),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = TelomerNavy),
                 ) {
@@ -119,7 +129,7 @@ fun DashboardScreen(
                 DashboardCard(
                     icon = Icons.Default.CalendarMonth,
                     title = "Prochain rendez-vous",
-                    onClick = { navController.navigate("appointments") },
+                    onClick = onNavigateToAppointments,
                 ) {
                     val appt = state.nextAppointment
                     if (appt != null) {
@@ -151,7 +161,7 @@ fun DashboardScreen(
                 DashboardCard(
                     icon = Icons.Default.Email,
                     title = "Messages non lus",
-                    onClick = { navController.navigate("messages") },
+                    onClick = onNavigateToMessages,
                 ) {
                     Text(
                         text = if (state.unreadMessages > 0) "${state.unreadMessages} message(s)" else "Aucun nouveau message",
@@ -167,7 +177,7 @@ fun DashboardScreen(
                 DashboardCard(
                     icon = Icons.Default.Checklist,
                     title = "Mon plan d'action",
-                    onClick = { navController.navigate("action-plan") },
+                    onClick = onNavigateToActionPlan,
                 ) {
                     Text(
                         "Suivez vos objectifs santé",
@@ -183,7 +193,7 @@ fun DashboardScreen(
                 DashboardCard(
                     icon = Icons.Default.Assignment,
                     title = "Mon questionnaire",
-                    onClick = { navController.navigate("questionnaire") },
+                    onClick = onNavigateToQuestionnaire,
                 ) {
                     val qStatus = state.questionnaireStatus
                     val (label, color) = when (qStatus) {
@@ -209,19 +219,19 @@ fun DashboardScreen(
                         icon = Icons.Default.CalendarMonth,
                         label = "Prendre\nRDV",
                         modifier = Modifier.weight(1f),
-                        onClick = { navController.navigate("appointment_booking") },
+                        onClick = onNavigateToBooking,
                     )
                     QuickActionButton(
                         icon = Icons.Default.Folder,
                         label = "Mes\ndocuments",
                         modifier = Modifier.weight(1f),
-                        onClick = { navController.navigate("documents") },
+                        onClick = onNavigateToDocuments,
                     )
                     QuickActionButton(
                         icon = Icons.Default.MedicalServices,
                         label = "Mes\nprescriptions",
                         modifier = Modifier.weight(1f),
-                        onClick = { navController.navigate("prescriptions") },
+                        onClick = onNavigateToPrescriptions,
                     )
                 }
 
@@ -232,7 +242,7 @@ fun DashboardScreen(
                         icon = Icons.Default.Checklist,
                         label = "Plan\nd'action",
                         modifier = Modifier.weight(1f),
-                        onClick = { navController.navigate("action-plan") },
+                        onClick = onNavigateToActionPlan,
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     Spacer(modifier = Modifier.weight(1f))

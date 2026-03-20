@@ -3,8 +3,8 @@ package health.telomer.android.feature.appointments
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import health.telomer.android.core.data.api.TelomerApi
 import health.telomer.android.core.data.api.models.AppointmentResponse
+import health.telomer.android.feature.appointments.data.AppointmentsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +20,7 @@ data class AppointmentsUiState(
 
 @HiltViewModel
 class AppointmentsViewModel @Inject constructor(
-    private val api: TelomerApi,
+    private val repository: AppointmentsRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AppointmentsUiState())
@@ -32,7 +32,7 @@ class AppointmentsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val all = api.getMyAppointments()
+                val all = repository.getAppointments()
                 val now = java.time.Instant.now().toString()
                 _uiState.value = AppointmentsUiState(
                     isLoading = false,
@@ -50,7 +50,7 @@ class AppointmentsViewModel @Inject constructor(
     fun cancelAppointment(id: String) {
         viewModelScope.launch {
             try {
-                api.cancelAppointment(id)
+                repository.cancelAppointment(id)
                 load()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Erreur lors de l'annulation: ${e.message}")
