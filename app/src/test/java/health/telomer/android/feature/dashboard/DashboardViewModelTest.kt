@@ -28,6 +28,15 @@ class DashboardViewModelTest {
         email = "alice@telomer.health",
     )
 
+    private val fakeDashboard = HealthOSDashboardResponse(
+        patientId = "test-id",
+        globalScore = 78.5,
+        globalConfidence = null,
+        inflammation = null,
+        pillars = emptyList(),
+        computedAt = null,
+    )
+
     private val futureDate = "2099-12-31T10:00:00Z"
     private val pastDate = "2000-01-01T10:00:00Z"
 
@@ -44,18 +53,10 @@ class DashboardViewModelTest {
 
     @Test
     fun `loadDashboard success - firstName correct`() = runTest {
-        val mockDashboard = HealthOSDashboardResponse(
-            patientId = "test-id",
-            globalScore = 78.5,
-            globalConfidence = null,
-            inflammation = null,
-            pillars = emptyList(),
-            computedAt = null,
-        )
         coEvery { repository.getProfile() } returns fakeProfile
         coEvery { repository.getUpcomingAppointments() } returns emptyList()
         coEvery { repository.getConversations() } returns emptyList()
-        coEvery { repository.getHealthOSDashboard() } returns mockDashboard
+        coEvery { repository.getHealthOSDashboard() } returns fakeDashboard
 
         viewModel = DashboardViewModel(repository)
         advanceUntilIdle()
@@ -127,7 +128,7 @@ class DashboardViewModelTest {
         viewModel = DashboardViewModel(repository)
         advanceUntilIdle()
 
-        assertNull("RDV annule ignore", viewModel.uiState.value.nextAppointment)
+        assertNull(viewModel.uiState.value.nextAppointment)
     }
 
     @Test
