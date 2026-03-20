@@ -174,11 +174,11 @@ private fun MainNavigation() {
             // Bottom tabs
             composable(
                 route = BottomTab.Dashboard.route,
-                deepLinks = listOf(navDeepLink { uriPattern = https://app.telomer.health/dashboard }),
+                deepLinks = listOf(navDeepLink { uriPattern = "https://app.telomer.health/dashboard" }),
             ) { DashboardScreen(navController) }
             composable(
                 route = BottomTab.HealthOS.route,
-                deepLinks = listOf(navDeepLink { uriPattern = https://app.telomer.health/bilan }),
+                deepLinks = listOf(navDeepLink { uriPattern = "https://app.telomer.health/bilan" }),
             ) { HealthOSScreen(navController) }
             composable(BottomTab.Nutrition.route) { NutritionJournalScreen(navController) }
             composable(BottomTab.ActionPlan.route) { ActionPlanScreen(navController) }

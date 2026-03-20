@@ -32,14 +32,14 @@ object BiometricHelper {
                 }
             }
             override fun onAuthenticationFailed() {
-                onError(Authentification échouée. Réessayez.)
+                onError("Authentification échouée. Réessayez.")
             }
         }
 
         val prompt = BiometricPrompt(activity, executor, callback)
         val info = BiometricPrompt.PromptInfo.Builder()
-            .setTitle(Telomer Health)
-            .setSubtitle(Vérifiez votre identité pour accéder à vos données médicales)
+            .setTitle("Telomer Health")
+            .setSubtitle("Vérifiez votre identité pour accéder à vos données médicales")
             .setAllowedAuthenticators(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
             .build()
 

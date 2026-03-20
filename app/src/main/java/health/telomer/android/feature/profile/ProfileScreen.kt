@@ -196,7 +196,7 @@ fun ProfileScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                Sécurité,
+                                "Sécurité",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.outline,
@@ -209,11 +209,11 @@ fun ProfileScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        Déverrouillage biométrique,
+                                        "Déverrouillage biométrique",
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                     Text(
-                                        Empreinte ou Face ID pour accéder à l'app,
+                                        "Empreinte ou Face ID pour accéder à l'app",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.outline,
                                     )
