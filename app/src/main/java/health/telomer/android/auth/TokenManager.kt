@@ -1,55 +1,67 @@
 package health.telomer.android.auth
 
 import android.content.Context
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.longPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
-
-private val Context.dataStore by preferencesDataStore(name = "auth_prefs")
 
 @Singleton
 class TokenManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     companion object {
-        private val ACCESS_TOKEN = stringPreferencesKey("access_token")
-        private val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
-        private val ID_TOKEN = stringPreferencesKey("id_token")
-        private val EXPIRES_AT = longPreferencesKey("expires_at")
+        private const val PREFS_NAME = "secure_auth_prefs"
+        private const val KEY_ACCESS_TOKEN = "access_token"
+        private const val KEY_REFRESH_TOKEN = "refresh_token"
+        private const val KEY_ID_TOKEN = "id_token"
+        private const val KEY_EXPIRES_AT = "expires_at"
     }
 
+    private val encryptedPrefs: SharedPreferences by lazy {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+        )
+    }
+
+    // Cache mémoire pour éviter tout runBlocking sur le main thread
+    private var _accessTokenCache: String? = null
+    private var _refreshTokenCache: String? = null
+    private var _idTokenCache: String? = null
+
+    // StateFlow pour observer l'état de connexion (remplace l'ancien DataStore Flow)
+    private val _isLoggedInFlow = MutableStateFlow(
+        !encryptedPrefs.getString(KEY_ACCESS_TOKEN, null).isNullOrBlank()
+    )
+    val isLoggedInFlow: Flow<Boolean> = _isLoggedInFlow
+
     val accessToken: String?
-        get() = runBlocking {
-            context.dataStore.data.map { it[ACCESS_TOKEN] }.first()
-        }
+        get() = _accessTokenCache ?: encryptedPrefs.getString(KEY_ACCESS_TOKEN, null)
+            .also { _accessTokenCache = it }
 
     val refreshToken: String?
-        get() = runBlocking {
-            context.dataStore.data.map { it[REFRESH_TOKEN] }.first()
-        }
+        get() = _refreshTokenCache ?: encryptedPrefs.getString(KEY_REFRESH_TOKEN, null)
+            .also { _refreshTokenCache = it }
 
     val idToken: String?
-        get() = runBlocking {
-            context.dataStore.data.map { it[ID_TOKEN] }.first()
-        }
-
-    val isLoggedInFlow: Flow<Boolean>
-        get() = context.dataStore.data.map { prefs ->
-            !prefs[ACCESS_TOKEN].isNullOrBlank()
-        }
+        get() = _idTokenCache ?: encryptedPrefs.getString(KEY_ID_TOKEN, null)
+            .also { _idTokenCache = it }
 
     fun isExpired(): Boolean {
-        val expiresAt = runBlocking {
-            context.dataStore.data.map { it[EXPIRES_AT] }.first()
-        } ?: return true
+        val expiresAt = encryptedPrefs.getLong(KEY_EXPIRES_AT, 0L)
+        if (expiresAt == 0L) return true
         // Consider expired 60 seconds before actual expiry for safety margin
         return System.currentTimeMillis() >= (expiresAt - 60_000)
     }
@@ -60,15 +72,25 @@ class TokenManager @Inject constructor(
         idToken: String? = null,
         expiresAtMillis: Long? = null,
     ) {
-        context.dataStore.edit { prefs ->
-            prefs[ACCESS_TOKEN] = accessToken
-            refreshToken?.let { prefs[REFRESH_TOKEN] = it }
-            idToken?.let { prefs[ID_TOKEN] = it }
-            expiresAtMillis?.let { prefs[EXPIRES_AT] = it }
-        }
+        encryptedPrefs.edit().apply {
+            putString(KEY_ACCESS_TOKEN, accessToken)
+            refreshToken?.let { putString(KEY_REFRESH_TOKEN, it) }
+            idToken?.let { putString(KEY_ID_TOKEN, it) }
+            expiresAtMillis?.let { putLong(KEY_EXPIRES_AT, it) }
+        }.apply()
+
+        // Mettre à jour le cache mémoire
+        _accessTokenCache = accessToken
+        _refreshTokenCache = refreshToken ?: _refreshTokenCache
+        _idTokenCache = idToken ?: _idTokenCache
+        _isLoggedInFlow.value = true
     }
 
     suspend fun clear() {
-        context.dataStore.edit { it.clear() }
+        encryptedPrefs.edit().clear().apply()
+        _accessTokenCache = null
+        _refreshTokenCache = null
+        _idTokenCache = null
+        _isLoggedInFlow.value = false
     }
 }

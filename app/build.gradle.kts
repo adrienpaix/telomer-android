@@ -85,6 +85,9 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
+    // Security (EncryptedSharedPreferences)
+    implementation("androidx.security:security-crypto-ktx:1.1.0-alpha06")
+
     // DataStore (preferences)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 

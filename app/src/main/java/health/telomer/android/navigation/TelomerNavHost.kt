@@ -1,5 +1,6 @@
 package health.telomer.android.navigation
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -7,8 +8,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -37,31 +40,64 @@ import health.telomer.android.feature.profile.ProfileScreen
 
 sealed class BottomTab(val route: String, val label: String, val icon: ImageVector) {
     data object Dashboard : BottomTab("dashboard", "Accueil", Icons.Default.Home)
-    data object Appointments : BottomTab("appointments", "RDV", Icons.Default.CalendarMonth)
-    data object HealthOS : BottomTab("healthos", "Mon Bilan", Icons.Default.Insights)
-    data object Messages : BottomTab("messages", "Messages", Icons.Default.Email)
-    data object Profile : BottomTab("profile", "Profil", Icons.Default.Person)
+    data object HealthOS : BottomTab("healthos", "Bilan", Icons.Default.Insights)
+    data object Nutrition : BottomTab("nutrition", "Nutrition", Icons.Default.Restaurant)
+    data object ActionPlan : BottomTab("action_plan", "Plan", Icons.Default.CheckCircle)
+    data object More : BottomTab("more", "Plus", Icons.Default.Menu)
 }
 
 private val tabs = listOf(
     BottomTab.Dashboard,
-    BottomTab.Appointments,
     BottomTab.HealthOS,
-    BottomTab.Messages,
-    BottomTab.Profile,
+    BottomTab.Nutrition,
+    BottomTab.ActionPlan,
+    BottomTab.More,
 )
 
 // Routes where bottom bar should be hidden
 private val hideBottomBarRoutes = setOf(
     "appointment_booking", "documents", "prescriptions", "practitioners",
     "nutrition/camera", "nutrition/scanner", "nutrition/search", "nutrition/goals",
-    "healthconnect", "action-plan", "nutrition",
+    "healthconnect",
 )
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MoreBottomSheet(navController: NavController, onDismiss: () -> Unit) {
+    val items = listOf(
+        Triple("messages", Icons.Default.Email, "Messages"),
+        Triple("appointments", Icons.Default.CalendarMonth, "Rendez-vous"),
+        Triple("healthconnect", Icons.Default.Watch, "Appareils connectés"),
+        Triple("documents", Icons.Default.Folder, "Documents"),
+        Triple("prescriptions", Icons.Default.LocalPharmacy, "Ordonnances"),
+        Triple("profile", Icons.Default.Person, "Profil"),
+    )
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                "Navigation",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp),
+            )
+            items.forEach { (route, icon, label) ->
+                ListItem(
+                    headlineContent = { Text(label) },
+                    leadingContent = { Icon(icon, contentDescription = label) },
+                    modifier = Modifier.clickable {
+                        navController.navigate(route)
+                        onDismiss()
+                    },
+                )
+            }
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+}
 
 @Composable
 fun TelomerNavHost(authViewModel: AuthViewModel = hiltViewModel()) {
     val authState by authViewModel.authState.collectAsState()
-    val context = LocalContext.current
 
     when (authState) {
         is AuthState.Loading -> {
@@ -89,10 +125,18 @@ private fun MainNavigation() {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = currentBackStackEntry?.destination
     val currentRoute = currentDestination?.route ?: ""
+    var showMoreSheet by remember { mutableStateOf(false) }
 
     val showBottomBar = currentRoute !in hideBottomBarRoutes &&
         !currentRoute.startsWith("conversation/") &&
         !currentRoute.startsWith("consultation/")
+
+    if (showMoreSheet) {
+        MoreBottomSheet(
+            navController = navController,
+            onDismiss = { showMoreSheet = false },
+        )
+    }
 
     Scaffold(
         bottomBar = {
@@ -100,12 +144,17 @@ private fun MainNavigation() {
                 NavigationBar {
                     tabs.forEach { tab ->
                         NavigationBarItem(
-                            selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true,
+                            selected = if (tab is BottomTab.More) false
+                                       else currentDestination?.hierarchy?.any { it.route == tab.route } == true,
                             onClick = {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                if (tab is BottomTab.More) {
+                                    showMoreSheet = true
+                                } else {
+                                    navController.navigate(tab.route) {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             },
                             icon = { Icon(tab.icon, contentDescription = tab.label) },
@@ -123,25 +172,27 @@ private fun MainNavigation() {
         ) {
             // Bottom tabs
             composable(BottomTab.Dashboard.route) { DashboardScreen(navController) }
-            composable(BottomTab.Appointments.route) { AppointmentsScreen(navController) }
             composable(BottomTab.HealthOS.route) { HealthOSScreen(navController) }
-            composable(BottomTab.Messages.route) { MessagingScreen(navController) }
-            composable(BottomTab.Profile.route) { ProfileScreen(navController) }
+            composable(BottomTab.Nutrition.route) { NutritionJournalScreen(navController) }
+            composable(BottomTab.ActionPlan.route) { ActionPlanScreen(navController) }
 
-            // Sub-screens
-            composable("appointment_booking") { AppointmentBookingScreen(navController) }
+            // Secondary screens — accessibles via MoreBottomSheet
+            composable("appointments") { AppointmentsScreen(navController) }
+            composable("messages") { MessagingScreen(navController) }
+            composable("profile") { ProfileScreen(navController) }
+            composable("healthconnect") { HealthConnectScreen(navController) }
             composable("documents") { DocumentsScreen(navController) }
             composable("prescriptions") { PrescriptionsScreen(navController) }
             composable("practitioners") { PractitionersScreen(navController) }
-            composable("healthconnect") { HealthConnectScreen(navController) }
-            composable("action-plan") { ActionPlanScreen(navController) }
-            composable("nutrition") { NutritionJournalScreen(navController) }
+
+            // Sub-screens
+            composable("appointment_booking") { AppointmentBookingScreen(navController) }
 
             // Conversation with argument
             composable(
                 "conversation/{conversationId}",
                 arguments = listOf(navArgument("conversationId") { type = NavType.StringType }),
-            ) { backStackEntry ->
+            ) {
                 ConversationScreen(navController = navController)
             }
 
