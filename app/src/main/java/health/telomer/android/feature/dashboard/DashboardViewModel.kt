@@ -18,7 +18,7 @@ data class DashboardUiState(
     val unreadMessages: Int = 0,
     val questionnaireStatus: String? = null,
     val error: String? = null,
-    val healthOSScore: Int? = null,
+    val healthOSScore: Double? = null,
 )
 
 @HiltViewModel

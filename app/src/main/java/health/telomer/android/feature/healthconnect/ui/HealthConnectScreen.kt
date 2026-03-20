@@ -464,7 +464,7 @@ private fun WhoopDashboard(
         // ── Sync button ──────────────────────────────────────────
         item {
             Spacer(Modifier.height(16.dp))
-            SyncButton(isSyncing = state.isSyncing, lastSyncEpoch = state.lastSyncEpoch, syncResult = state.syncResult, onSync = onSync)
+            SyncButton(isSyncing = state.isSyncing, lastSyncEpoch = state.lastSyncEpoch, syncResult = state.syncResult, backendSyncCount = state.backendSyncCount, backendSyncError = state.backendSyncError, onSync = onSync)
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
@@ -726,7 +726,7 @@ private fun WeekLineChart(values: List<Double>, color: Color, labels: List<Strin
 }
 
 @Composable
-private fun SyncButton(isSyncing: Boolean, lastSyncEpoch: Long?, syncResult: health.telomer.android.feature.healthconnect.data.SyncResult?, onSync: () -> Unit) {
+private fun SyncButton(isSyncing: Boolean, lastSyncEpoch: Long?, syncResult: health.telomer.android.feature.healthconnect.data.SyncResult?, backendSyncCount: Int?, backendSyncError: String?, onSync: () -> Unit) {
     val rotation = if (isSyncing) {
         val infiniteTransition = rememberInfiniteTransition(label = "sync")
         infiniteTransition.animateFloat(initialValue = 0f, targetValue = 360f, animationSpec = infiniteRepeatable(animation = tween(1000, easing = LinearEasing)), label = "syncRotation").value
@@ -749,6 +749,14 @@ private fun SyncButton(isSyncing: Boolean, lastSyncEpoch: Long?, syncResult: hea
         syncResult?.let { r ->
             Spacer(Modifier.height(4.dp))
             Text("${r.synced} envoyé(s) · ${r.duplicates} doublon(s)", style = MaterialTheme.typography.bodySmall, color = ActivityGreen)
+        }
+        backendSyncCount?.let { count ->
+            Spacer(Modifier.height(4.dp))
+            Text("Synchronisé ✓ ($count métriques envoyées)", style = MaterialTheme.typography.bodySmall, color = ActivityGreen)
+        }
+        backendSyncError?.let { err ->
+            Spacer(Modifier.height(4.dp))
+            Text(err, style = MaterialTheme.typography.bodySmall, color = CardioRed)
         }
     }
 }

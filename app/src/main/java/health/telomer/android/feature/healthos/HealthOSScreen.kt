@@ -58,16 +58,16 @@ private val DEFAULT_CONFIG = PillarConfig(Icons.Default.Info, TelomerGray500, Te
 // ── Score Circle ──
 
 @Composable
-fun ScoreCircle(score: Int?, size: Dp = 120.dp, strokeWidth: Dp = 12.dp) {
+fun ScoreCircle(score: Double?, size: Dp = 120.dp, strokeWidth: Dp = 12.dp) {
     val animatedProgress by animateFloatAsState(
-        targetValue = (score ?: 0) / 100f,
+        targetValue = ((score ?: 0.0) / 100.0).toFloat(),
         animationSpec = tween(1000),
         label = "scoreProgress",
     )
     val color = when {
         score == null -> TelomerGray500
-        score >= 70 -> TelomerGreen
-        score >= 45 -> TelomerAmber
+        score >= 70.0 -> TelomerGreen
+        score >= 45.0 -> TelomerAmber
         else -> TelomerRed
     }
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(size)) {
@@ -84,7 +84,7 @@ fun ScoreCircle(score: Int?, size: Dp = 120.dp, strokeWidth: Dp = 12.dp) {
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = score?.toString() ?: "\u2014",
+                text = score?.let { kotlin.math.roundToInt(it).toString() } ?: "\u2014",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontSize = (size.value * 0.3f).sp,
                 ),
@@ -348,7 +348,7 @@ private fun PillarDetailSheet(
                             color = TelomerGray900,
                         )
                     }
-                    ScoreCircle(score = pillarDetail.score, size = 72.dp, strokeWidth = 8.dp)
+                    ScoreCircle(score = pillarDetail.score?.toDouble(), size = 72.dp, strokeWidth = 8.dp)
                 }
 
                 Spacer(Modifier.height(20.dp))

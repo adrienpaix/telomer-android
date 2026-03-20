@@ -25,6 +25,8 @@ data class HealthConnectUiState(
     val isSyncing: Boolean = false,
     val lastSyncEpoch: Long? = null,
     val syncResult: SyncResult? = null,
+    val backendSyncCount: Int? = null,
+    val backendSyncError: String? = null,
     val error: String? = null,
     val userAge: Int = HealthConnectManager.DEFAULT_AGE,
 )
@@ -91,14 +93,22 @@ class HealthConnectViewModel @Inject constructor(
 
     fun syncNow() {
         viewModelScope.launch {
-            _state.update { it.copy(isSyncing = true, error = null) }
+            _state.update { it.copy(isSyncing = true, error = null, backendSyncCount = null, backendSyncError = null) }
             try {
                 val result = sync.sync(days = 7, userAge = _state.value.userAge)
+                // Also sync to new backend bulk endpoint POST /me/health-metrics/bulk
+                val backendCount = try {
+                    sync.syncToBackend(userAge = _state.value.userAge)
+                } catch (e: Exception) {
+                    _state.update { it.copy(backendSyncError = "Backend: ${e.message}") }
+                    -1
+                }
                 _state.update {
                     it.copy(
                         isSyncing = false,
                         syncResult = result,
                         lastSyncEpoch = Instant.now().epochSecond,
+                        backendSyncCount = if (backendCount >= 0) backendCount else null,
                     )
                 }
                 loadData()

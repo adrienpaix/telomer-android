@@ -2,6 +2,7 @@ package health.telomer.android.core.data.api
 
 import health.telomer.android.core.data.api.models.*
 import okhttp3.MultipartBody
+import retrofit2.Response
 import retrofit2.http.*
 
 /**
@@ -88,4 +89,8 @@ interface TelomerApi {
     // ── Action Plans ──
     @GET("me/action-plans")
     suspend fun getMyActionPlans(): List<ActionPlanResponse>
+
+    // ── Health Metrics Bulk Sync ──
+    @POST("me/health-metrics/bulk")
+    suspend fun bulkHealthMetrics(@Body payload: BulkMetricsPayload): Response<Unit>
 }

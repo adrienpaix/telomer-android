@@ -112,29 +112,57 @@ data class NutritionSummaryDto(
     val goal: NutritionGoalDto? = null,
 )
 
+// ── Text Analysis DTOs ─────────────────────────────────
+
+@JsonClass(generateAdapter = true)
+data class AnalyzeTextRequest(
+    @Json(name = "text") val text: String,
+)
+
+@JsonClass(generateAdapter = true)
+data class AnalyzedMealItem(
+    val name: String,
+    @Json(name = "quantity_g") val quantityG: Double? = null,
+    @Json(name = "calories_kcal") val caloriesKcal: Double? = null,
+    @Json(name = "proteins_g") val proteinsG: Double? = null,
+    @Json(name = "carbs_g") val carbsG: Double? = null,
+    @Json(name = "fats_g") val fatsG: Double? = null,
+    @Json(name = "food_item_id") val foodItemId: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class AnalyzedMealResponse(
+    val items: List<AnalyzedMealItem> = emptyList(),
+    @Json(name = "total_calories") val totalCalories: Double? = null,
+    val raw: String? = null,
+)
+
 // ── Retrofit Interface ──────────────────────────────────
 
 interface NutritionApi {
 
-    @GET("me/nutrition/meals")
+    @GET("me/food-log")
     suspend fun getMeals(@Query("date") date: String): MealLogDayResponseDto
 
-    @POST("me/nutrition/meals")
+    @POST("me/food-log")
     suspend fun createMeal(@Body request: CreateMealRequest): MealLogDto
 
-    @PUT("me/nutrition/meals/{mealId}")
+    @PUT("me/food-log/{mealId}")
     suspend fun updateMeal(@Path("mealId") mealId: String, @Body request: CreateMealRequest): MealLogDto
 
-    @DELETE("me/nutrition/meals/{mealId}")
+    @DELETE("me/food-log/{mealId}")
     suspend fun deleteMeal(@Path("mealId") mealId: String)
 
-    @GET("me/nutrition/summary")
+    @GET("me/food-log/summary")
     suspend fun getSummary(@Query("date") date: String): NutritionSummaryDto
 
-    @GET("me/nutrition/food/search")
+    @POST("me/food-log/analyze/text")
+    suspend fun analyzeText(@Body request: AnalyzeTextRequest): AnalyzedMealResponse
+
+    @GET("me/food-log/food/search")
     suspend fun searchFood(@Query("q") query: String): FoodSearchResponse
 
-    @GET("me/nutrition/food/barcode/{ean}")
+    @GET("me/food-log/food/barcode/{ean}")
     suspend fun getFoodByBarcode(@Path("ean") ean: String): FoodItemDto
 
     @GET("me/nutrition/goals")

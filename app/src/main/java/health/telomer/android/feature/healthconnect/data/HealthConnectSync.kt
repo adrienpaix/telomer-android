@@ -5,6 +5,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
+import health.telomer.android.core.data.api.TelomerApi
+import health.telomer.android.core.data.api.models.BulkMetricsPayload
+import health.telomer.android.core.data.api.models.HealthMetricItem
 import health.telomer.android.feature.healthconnect.domain.HealthMetric
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -21,6 +24,7 @@ class HealthConnectSync @Inject constructor(
     @ApplicationContext private val context: Context,
     private val manager: HealthConnectManager,
     private val api: HealthConnectApi,
+    private val telomerApi: TelomerApi,
 ) {
     companion object {
         private val LAST_SYNC = longPreferencesKey("last_sync_epoch")
@@ -74,6 +78,26 @@ class HealthConnectSync @Inject constructor(
         val oneHourAgo = Instant.now().epochSecond - 3600
         if (lastEpoch != null && lastEpoch > oneHourAgo) return null
         return sync(days = 1, userAge = userAge)
+    }
+
+    /**
+     * Sync last 7 days of metrics to the new backend bulk endpoint.
+     * @return number of metrics sent.
+     */
+    suspend fun syncToBackend(userAge: Int = HealthConnectManager.DEFAULT_AGE): Int {
+        val metrics = manager.readLastDays(7, userAge)
+        if (metrics.isEmpty()) return 0
+        val items = metrics.map { m ->
+            HealthMetricItem(
+                metric_type = m.type.apiName,
+                value = m.value,
+                unit = m.unit,
+                recorded_at = ISO.format(m.recordedAt.atOffset(ZoneOffset.UTC)),
+            )
+        }
+        telomerApi.bulkHealthMetrics(BulkMetricsPayload(items))
+        setLastSyncEpoch(Instant.now().epochSecond)
+        return items.size
     }
 
     private fun HealthMetric.toPayload() = MetricPayload(

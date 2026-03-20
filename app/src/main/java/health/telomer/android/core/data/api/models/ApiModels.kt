@@ -145,3 +145,19 @@ data class ActionPlanResponse(
     val content: String,
     @Json(name = "created_at") val createdAt: String,
 )
+
+// ── Health Metrics Bulk Sync ──────────────────────────────────────────────────
+
+@JsonClass(generateAdapter = true)
+data class HealthMetricItem(
+    @Json(name = "metric_type") val metric_type: String,
+    val value: Double,
+    val unit: String?,
+    @Json(name = "recorded_at") val recorded_at: String,
+    val source: String = "health_connect",
+)
+
+@JsonClass(generateAdapter = true)
+data class BulkMetricsPayload(
+    val metrics: List<HealthMetricItem>,
+)

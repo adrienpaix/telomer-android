@@ -6,7 +6,7 @@ import com.squareup.moshi.JsonClass
 @JsonClass(generateAdapter = true)
 data class HealthOSDashboardResponse(
     @Json(name = "patient_id") val patientId: String,
-    @Json(name = "global_score") val globalScore: Int?,
+    @Json(name = "global_score") val globalScore: Double?,
     @Json(name = "global_confidence") val globalConfidence: String?,
     val inflammation: InflammationResponse?,
     val pillars: List<PillarSummaryResponse>,
