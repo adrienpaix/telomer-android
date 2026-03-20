@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -33,6 +35,7 @@ fun NutritionJournalScreen(
     viewModel: NutritionJournalViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val haptic = LocalHapticFeedback.current
 
     Scaffold(
         floatingActionButton = {
@@ -58,7 +61,10 @@ fun NutritionJournalScreen(
                     }
                 }
                 FloatingActionButton(
-                    onClick = { viewModel.toggleAddOptions() },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.toggleAddOptions()
+                    },
                     containerColor = TelomerBlue,
                 ) {
                     Icon(

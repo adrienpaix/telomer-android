@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -304,9 +306,13 @@ private fun PillarSectionCard(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            val haptic = LocalHapticFeedback.current
                             Checkbox(
                                 checked = item.isChecked,
-                                onCheckedChange = { onToggleItem(item.globalIndex) },
+                                onCheckedChange = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onToggleItem(item.globalIndex)
+                                },
                                 colors = CheckboxDefaults.colors(
                                     checkedColor = section.pillar.color,
                                     uncheckedColor = TelomerGray500,

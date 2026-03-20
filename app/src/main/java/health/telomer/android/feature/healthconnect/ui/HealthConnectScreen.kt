@@ -26,7 +26,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -52,17 +54,17 @@ private val DarkBg = Color(0xFF1A1A2E)
 private val CardBg = Color(0xFF242438)
 private val BarTrack = Color(0xFF3A3A4E)
 private val TextSecondary = Color(0xFF9CA3AF)
-private val ActivityGreen = Color(0xFF10B981)
-private val CardioRed = Color(0xFFEF4444)
+private val ActivityGreen = TelomerGreen
+private val CardioRed = TelomerRed
 private val SleepPurple = Color(0xFF8B5CF6)
 private val CompositionBlue = Color(0xFF3B82F6)
-private val TelomerCyan = Color(0xFF0596DE)
+private val TelomerCyan = TelomerBlue
 private val ZoneColors = listOf(
     Color(0xFF6B7280), // Z1 grey
     Color(0xFF3B82F6), // Z2 blue
-    Color(0xFF10B981), // Z3 green
-    Color(0xFFF59E0B), // Z4 amber
-    Color(0xFFEF4444), // Z5 red
+    TelomerGreen, // Z3 green
+    TelomerOrange, // Z4 amber
+    TelomerRed, // Z5 red
 )
 
 private val frenchNumberFormat: NumberFormat = NumberFormat.getNumberInstance(Locale.FRANCE)
@@ -575,7 +577,7 @@ private fun ScoreCircle(score: Int, modifier: Modifier = Modifier) {
             drawArc(color = BarTrack, startAngle = 135f, sweepAngle = 270f, useCenter = false, style = stroke)
             val progressColor = when {
                 score >= 80 -> ActivityGreen
-                score >= 60 -> Color(0xFFF59E0B)
+                score >= 60 -> TelomerOrange
                 score >= 40 -> TelomerOrange
                 else -> CardioRed
             }
@@ -727,13 +729,14 @@ private fun WeekLineChart(values: List<Double>, color: Color, labels: List<Strin
 
 @Composable
 private fun SyncButton(isSyncing: Boolean, lastSyncEpoch: Long?, syncResult: health.telomer.android.feature.healthconnect.data.SyncResult?, backendSyncCount: Int?, backendSyncError: String?, onSync: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
     val rotation = if (isSyncing) {
         val infiniteTransition = rememberInfiniteTransition(label = "sync")
         infiniteTransition.animateFloat(initialValue = 0f, targetValue = 360f, animationSpec = infiniteRepeatable(animation = tween(1000, easing = LinearEasing)), label = "syncRotation").value
     } else 0f
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Button(
-            onClick = onSync, enabled = !isSyncing,
+            onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onSync() }, enabled = !isSyncing,
             colors = ButtonDefaults.buttonColors(containerColor = TelomerBlue, disabledContainerColor = TelomerBlue.copy(alpha = 0.5f)),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -774,12 +777,12 @@ private fun computeGlobalScore(steps: Int, exerciseMin: Int, sleepMin: Int, hrRe
 }
 
 private fun stepsStatus(steps: Int): String = when { steps >= 10_000 -> "Objectif atteint"; steps >= 6_000 -> "En bonne voie"; else -> "Insuffisant" }
-private fun stepsStatusColor(steps: Int): Color = when { steps >= 10_000 -> ActivityGreen; steps >= 6_000 -> Color(0xFFF59E0B); else -> CardioRed }
+private fun stepsStatusColor(steps: Int): Color = when { steps >= 10_000 -> ActivityGreen; steps >= 6_000 -> TelomerOrange; else -> CardioRed }
 private fun hrRestingStatus(hr: Int): String = when { hr in 50..65 -> "Optimal"; hr in 66..75 -> "Normal"; hr in 76..85 -> "Élevée"; else -> "Attention" }
-private fun hrRestingStatusColor(hr: Int): Color = when { hr in 50..65 -> ActivityGreen; hr in 66..75 -> Color(0xFFF59E0B); hr in 76..85 -> TelomerOrange; else -> CardioRed }
+private fun hrRestingStatusColor(hr: Int): Color = when { hr in 50..65 -> ActivityGreen; hr in 66..75 -> TelomerOrange; hr in 76..85 -> TelomerOrange; else -> CardioRed }
 private fun hrRestingProgress(hr: Int): Float = when { hr in 50..65 -> 1.0f; hr in 66..75 -> 0.7f; hr in 76..85 -> 0.5f; else -> 0.3f }
 private fun sleepStatus(sleepMin: Int): String = when { sleepMin >= 450 -> "Optimal"; sleepMin >= 360 -> "Suffisant"; else -> "Insuffisant" }
-private fun sleepStatusColor(sleepMin: Int): Color = when { sleepMin >= 450 -> ActivityGreen; sleepMin >= 360 -> Color(0xFFF59E0B); else -> CardioRed }
+private fun sleepStatusColor(sleepMin: Int): Color = when { sleepMin >= 450 -> ActivityGreen; sleepMin >= 360 -> TelomerOrange; else -> CardioRed }
 private fun computeWeightTrend(metrics: List<HealthMetric>): String {
     if (metrics.size < 2) return ""
     val sorted = metrics.sortedBy { it.recordedAt }

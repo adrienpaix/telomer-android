@@ -44,9 +44,9 @@ data class PillarConfig(val icon: ImageVector, val color: Color, val bgColor: Co
 
 private val PILLAR_CONFIG = mapOf(
     "cardiovascular"  to PillarConfig(Icons.Default.Favorite, Color(0xFFF43F5E), Color(0xFFFFF1F2)),
-    "metabolic"       to PillarConfig(Icons.Default.LocalFireDepartment, Color(0xFFF59E0B), Color(0xFFFFFBEB)),
+    "metabolic"       to PillarConfig(Icons.Default.LocalFireDepartment, TelomerOrange, Color(0xFFFFFBEB)),
     "neuro_emotional" to PillarConfig(Icons.Default.Psychology, Color(0xFF8B5CF6), Color(0xFFF5F3FF)),
-    "hormonal_immune" to PillarConfig(Icons.Default.Shield, Color(0xFF10B981), Color(0xFFECFDF5)),
+    "hormonal_immune" to PillarConfig(Icons.Default.Shield, TelomerGreen, Color(0xFFECFDF5)),
     "physical"        to PillarConfig(Icons.Default.FitnessCenter, Color(0xFF3B82F6), Color(0xFFEFF6FF)),
     "sleep"           to PillarConfig(Icons.Default.Bedtime, Color(0xFF6366F1), Color(0xFFEEF2FF)),
     "cellular_aging"  to PillarConfig(Icons.Default.Biotech, Color(0xFF14B8A6), Color(0xFFF0FDFA)),
@@ -106,7 +106,7 @@ fun ScoreCircle(score: Double?, size: Dp = 120.dp, strokeWidth: Dp = 12.dp) {
 private fun StatusBadge(status: String?) {
     val (label, color) = when (status) {
         "optimal" -> "Optimal" to TelomerGreen
-        "watch" -> "À surveiller" to Color(0xFFF59E0B)
+        "watch" -> "À surveiller" to TelomerOrange
         "alert" -> "Alerte" to TelomerAmber
         "critical" -> "Critique" to TelomerRed
         else -> (status ?: "—") to TelomerGray500
@@ -476,7 +476,7 @@ fun HealthOSScreen(
                             .fillMaxWidth()
                             .background(
                                 Brush.verticalGradient(
-                                    listOf(TelomerNavy, Color(0xFF1E293B))
+                                    listOf(TelomerNavy, TelomerDarkSurface)
                                 ),
                                 RoundedCornerShape(20.dp),
                             )
@@ -503,7 +503,7 @@ fun HealthOSScreen(
                                             val date = ts.take(10)
                                             Text(
                                                 "Mis à jour le $date",
-                                                color = Color(0xFF94A3B8),
+                                                color = TelomerDarkOnSurface,
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
                                         }
@@ -512,7 +512,7 @@ fun HealthOSScreen(
                             } else {
                                 Text(
                                     "Pas encore de score disponible",
-                                    color = Color(0xFF94A3B8),
+                                    color = TelomerDarkOnSurface,
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                             }
