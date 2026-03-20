@@ -26,7 +26,11 @@ data class PillarSummaryResponse(
     val score: Double?,
     val confidence: String?,
     val trend: String?,
-    @Json(name = "completeness_pct") val completenessPct: Int?,
+    @Json(name = "trend_delta") val trendDelta: Double? = null,
+    @Json(name = "completeness_pct") val completenessPct: Double?,
+    @Json(name = "alert_count") val alertCount: Int? = null,
+    @Json(name = "last_updated") val lastUpdated: String? = null,
+    @Json(name = "pathology_flags") val pathologyFlags: List<String>? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -35,7 +39,7 @@ data class PillarDetailResponse(
     val label: String,
     val score: Double?,
     val confidence: String?,
-    @Json(name = "completeness_pct") val completenessPct: Int?,
+    @Json(name = "completeness_pct") val completenessPct: Double?,
     val metrics: List<MetricResponse>,
     @Json(name = "missing_metrics") val missingMetrics: List<String>,
 )
