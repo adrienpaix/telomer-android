@@ -2,6 +2,7 @@ package health.telomer.android.feature.consultation
 
 import android.app.Application
 import android.util.Log
+import health.telomer.android.BuildConfig
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -77,7 +78,7 @@ class VideoCallViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to get token", e)
+                if (BuildConfig.DEBUG) Log.e(TAG, "Failed to get token", e)
                 _state.update {
                     it.copy(
                         isConnecting = false,
@@ -108,24 +109,24 @@ class VideoCallViewModel @Inject constructor(
                 // Listen to ALL room events for track changes
                 eventJob = viewModelScope.launch {
                     lkRoom.events.collect { event ->
-                        Log.d(TAG, "Room event: ${event::class.simpleName}")
+                        if (BuildConfig.DEBUG) Log.d(TAG, "Room event: ${event::class.simpleName}")
                         when (event) {
                             is RoomEvent.ParticipantConnected -> {
-                                Log.d(TAG, "Participant connected: ${event.participant.identity}")
+                                if (BuildConfig.DEBUG) Log.d(TAG, "Participant connected: ${event.participant.identity}")
                                 refreshAllTracks(lkRoom)
                             }
                             is RoomEvent.ParticipantDisconnected -> {
                                 refreshAllTracks(lkRoom)
                             }
                             is RoomEvent.TrackSubscribed -> {
-                                Log.d(TAG, "Track subscribed: ${event.track.name} from ${event.participant.identity}")
+                                if (BuildConfig.DEBUG) Log.d(TAG, "Track subscribed: ${event.track.name} from ${event.participant.identity}")
                                 refreshAllTracks(lkRoom)
                             }
                             is RoomEvent.TrackUnsubscribed -> {
                                 refreshAllTracks(lkRoom)
                             }
                             is RoomEvent.TrackPublished -> {
-                                Log.d(TAG, "Track published: ${event.publication.name}")
+                                if (BuildConfig.DEBUG) Log.d(TAG, "Track published: ${event.publication.name}")
                                 // Local track was published - refresh
                                 refreshAllTracks(lkRoom)
                             }
@@ -157,14 +158,14 @@ class VideoCallViewModel @Inject constructor(
                     token = token,
                     options = ConnectOptions(autoSubscribe = true),
                 )
-                Log.d(TAG, "Connected to room: ${lkRoom.name}")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Connected to room: ${lkRoom.name}")
 
                 // Enable local audio/video
                 val localParticipant = lkRoom.localParticipant
                 localParticipant.setMicrophoneEnabled(true)
-                Log.d(TAG, "Mic enabled")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Mic enabled")
                 localParticipant.setCameraEnabled(true)
-                Log.d(TAG, "Camera enabled")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Camera enabled")
 
                 // Wait a moment for tracks to be published
                 delay(500)
@@ -184,15 +185,8 @@ class VideoCallViewModel @Inject constructor(
                 // Start call timer
                 startTimer()
 
-                // Poll tracks every 2s for the first 10s to catch late publications
-                launch {
-                    repeat(5) {
-                        delay(2000)
-                        refreshAllTracks(lkRoom)
-                    }
-                }
             } catch (e: Exception) {
-                Log.e(TAG, "Connection failed", e)
+                if (BuildConfig.DEBUG) Log.e(TAG, "Connection failed", e)
                 _state.update {
                     it.copy(
                         isConnecting = false,
@@ -238,7 +232,7 @@ class VideoCallViewModel @Inject constructor(
             if (remoteVideoTrack != null) break
         }
 
-        Log.d(TAG, "Tracks refresh: local=${localVideoTrack != null}, remote=${remoteVideoTrack != null}, remoteParticipants=${remoteParticipants.size}")
+        if (BuildConfig.DEBUG) Log.d(TAG, "Tracks refresh: local=${localVideoTrack != null}, remote=${remoteVideoTrack != null}, remoteParticipants=${remoteParticipants.size}")
 
         _state.update {
             it.copy(

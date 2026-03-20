@@ -5,9 +5,12 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import health.telomer.android.core.data.api.TelomerApi
 import health.telomer.android.core.data.api.models.AppointmentResponse
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,34 +38,42 @@ class DashboardViewModel @Inject constructor(
 
     fun loadDashboard() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val profile = api.getMyProfile()
-                val appointments = try { api.getMyAppointments() } catch (_: Exception) { emptyList() }
-                val conversations = try { api.getConversations() } catch (_: Exception) { emptyList() }
+                coroutineScope {
+                    val profileDeferred = async { api.getMyProfile() }
+                    val apptsDeferred = async { runCatching { api.getMyAppointments() }.getOrElse { emptyList() } }
+                    val messagesDeferred = async { runCatching { api.getConversations() }.getOrElse { emptyList() } }
+                    val healthDeferred = async { runCatching { api.getHealthOSDashboard() }.getOrNull() }
 
-                val now = java.time.Instant.now().toString()
-                val nextAppt = appointments
-                    .filter { it.status != "cancelled" && it.scheduledAt >= now }
-                    .minByOrNull { it.scheduledAt }
+                    val profile = profileDeferred.await()
+                    val appointments = apptsDeferred.await()
+                    val conversations = messagesDeferred.await()
+                    val health = healthDeferred.await()
 
-                val unread = conversations.sumOf { it.unreadCount }
+                    val now = java.time.Instant.now().toString()
+                    val nextAppt = appointments
+                        .filter { it.status != "cancelled" && it.scheduledAt >= now }
+                        .minByOrNull { it.scheduledAt }
 
-                val healthOSScore = try { api.getHealthOSDashboard().globalScore } catch (_: Exception) { null }
+                    val unread = conversations.sumOf { it.unreadCount }
 
-                _uiState.value = DashboardUiState(
-                    isLoading = false,
-                    firstName = profile.firstName,
-                    nextAppointment = nextAppt,
-                    unreadMessages = unread,
-                    questionnaireStatus = null,
-                    healthOSScore = healthOSScore,
-                )
+                    _uiState.value = DashboardUiState(
+                        isLoading = false,
+                        firstName = profile.firstName,
+                        nextAppointment = nextAppt,
+                        unreadMessages = unread,
+                        questionnaireStatus = null,
+                        healthOSScore = health?.globalScore,
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.value = DashboardUiState(
-                    isLoading = false,
-                    error = e.message ?: "Erreur de chargement",
-                )
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Erreur de chargement",
+                    )
+                }
             }
         }
     }

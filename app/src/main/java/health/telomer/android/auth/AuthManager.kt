@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import health.telomer.android.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +58,7 @@ class AuthManager @Inject constructor(
                     serviceConfig = config
                     cont.resume(config)
                 } else {
-                    Log.w(TAG, "Discovery failed, using fallback", ex)
+                    if (BuildConfig.DEBUG) Log.w(TAG, "Discovery failed, using fallback", ex)
                     val fallback = AuthConfig.fallbackServiceConfig()
                     serviceConfig = fallback
                     cont.resume(fallback)
@@ -82,7 +83,7 @@ class AuthManager @Inject constructor(
                 val authIntent = authService.getAuthorizationRequestIntent(authRequest)
                 activity.startActivityForResult(authIntent, RC_AUTH)
             } catch (e: Exception) {
-                Log.e(TAG, "Login failed", e)
+                if (BuildConfig.DEBUG) Log.e(TAG, "Login failed", e)
             }
         }
     }
@@ -92,7 +93,7 @@ class AuthManager @Inject constructor(
         val exception = AuthorizationException.fromIntent(intent)
 
         if (response == null) {
-            Log.e(TAG, "Auth response null", exception)
+            if (BuildConfig.DEBUG) Log.e(TAG, "Auth response null", exception)
             return false
         }
 
@@ -101,7 +102,7 @@ class AuthManager @Inject constructor(
             saveTokenResponse(tokenResponse)
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Token exchange failed", e)
+            if (BuildConfig.DEBUG) Log.e(TAG, "Token exchange failed", e)
             false
         }
     }
@@ -146,7 +147,7 @@ class AuthManager @Inject constructor(
             saveTokenResponse(tokenResponse)
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Token refresh failed", e)
+            if (BuildConfig.DEBUG) Log.e(TAG, "Token refresh failed", e)
             false
         }
     }
@@ -192,9 +193,9 @@ class AuthManager @Inject constructor(
                     .build()
 
                 // Fire and forget — the local state is already cleared
-                Log.d(TAG, "End session request sent to $endSessionEndpoint")
+                if (BuildConfig.DEBUG) Log.d(TAG, "End session request sent to $endSessionEndpoint")
             } catch (e: Exception) {
-                Log.w(TAG, "End session failed (tokens already cleared)", e)
+                if (BuildConfig.DEBUG) Log.w(TAG, "End session failed (tokens already cleared)", e)
             }
         }
     }

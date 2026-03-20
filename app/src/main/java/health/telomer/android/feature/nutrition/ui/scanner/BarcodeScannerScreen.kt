@@ -141,7 +141,7 @@ fun BarcodeScannerScreen(
                                         preview, analyzer,
                                     )
                                 } catch (e: Exception) {
-                                    android.util.Log.e("BarcodeScanner", "Camera binding failed", e)
+                                    if (health.telomer.android.BuildConfig.DEBUG) android.util.Log.e("BarcodeScanner", "Camera binding failed", e)
                                 }
                             }, ContextCompat.getMainExecutor(ctx))
                         }

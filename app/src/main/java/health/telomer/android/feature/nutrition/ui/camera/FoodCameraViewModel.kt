@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import health.telomer.android.feature.nutrition.domain.repository.NutritionRepository
 import health.telomer.android.feature.nutrition.engine.FoodRecognitionEngine
 import health.telomer.android.feature.nutrition.engine.RecognizedFood
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,11 +26,14 @@ data class CameraUiState(
     val recognizedFoods: List<RecognizedFood> = emptyList(),
     val portions: Map<String, Double> = emptyMap(),
     val error: String? = null,
+    val addedSuccessfully: Boolean = false,
+    val isLoading: Boolean = false,
 )
 
 @HiltViewModel
 class FoodCameraViewModel @Inject constructor(
     private val engine: FoodRecognitionEngine,
+    private val repository: NutritionRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CameraUiState())
@@ -83,7 +87,48 @@ class FoodCameraViewModel @Inject constructor(
         _state.update { CameraUiState() }
     }
 
-    fun addToMeal() {
-        // TODO: call repository to add recognized foods with portions to current meal
+    fun addToMeal(foodName: String, calories: Double?, proteinG: Double?, carbsG: Double?, fatG: Double?) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                repository.createDirectFoodLog(
+                    foodName = foodName,
+                    calories = calories,
+                    proteinG = proteinG,
+                    carbsG = carbsG,
+                    fatG = fatG,
+                    source = "photo",
+                )
+                _state.update { it.copy(isLoading = false, addedSuccessfully = true) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    /** Convenience overload — adds all recognized foods from the current analysis. */
+    fun addRecognizedFoodsToMeal() {
+        val foods = _state.value.recognizedFoods
+        val portions = _state.value.portions
+        if (foods.isEmpty()) return
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                for (food in foods) {
+                    val portionG = portions[food.name] ?: food.estimatedPortionG
+                    repository.createDirectFoodLog(
+                        foodName = food.name,
+                        calories = food.estimatedCalories,
+                        proteinG = food.estimatedProteins,
+                        carbsG = food.estimatedCarbs,
+                        fatG = food.estimatedFats,
+                        source = "photo",
+                    )
+                }
+                _state.update { it.copy(isLoading = false, addedSuccessfully = true) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
     }
 }

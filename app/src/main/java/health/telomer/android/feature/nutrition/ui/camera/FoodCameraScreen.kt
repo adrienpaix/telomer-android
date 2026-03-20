@@ -123,7 +123,7 @@ fun FoodCameraScreen(
                                         preview, imageCapture,
                                     )
                                 } catch (e: Exception) {
-                                    android.util.Log.e("FoodCamera", "Camera binding failed", e)
+                                    if (health.telomer.android.BuildConfig.DEBUG) android.util.Log.e("FoodCamera", "Camera binding failed", e)
                                 }
                             }, ContextCompat.getMainExecutor(ctx))
                         }

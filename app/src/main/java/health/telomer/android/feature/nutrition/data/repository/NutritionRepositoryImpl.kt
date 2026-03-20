@@ -66,6 +66,28 @@ class NutritionRepositoryImpl @Inject constructor(
         item.toMealLogItem()
     }
 
+    override suspend fun createDirectFoodLog(
+        foodName: String,
+        calories: Double?,
+        proteinG: Double?,
+        carbsG: Double?,
+        fatG: Double?,
+        source: String,
+    ): Result<Unit> = runCatching {
+        api.createFoodLog(
+            FoodLogCreateRequest(
+                foodName = foodName,
+                calories = calories,
+                proteinG = proteinG,
+                carbsG = carbsG,
+                fatG = fatG,
+                source = source,
+                mealType = "snack",
+            )
+        )
+        Unit
+    }
+
     override suspend fun deleteMealItem(mealItemId: String): Result<Unit> = runCatching {
         api.deleteFoodLog(mealItemId)
     }

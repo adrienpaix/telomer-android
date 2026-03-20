@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import health.telomer.android.feature.nutrition.domain.model.FoodItem
+import health.telomer.android.feature.nutrition.domain.model.MealType
 import health.telomer.android.feature.nutrition.domain.repository.NutritionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +19,7 @@ data class ScannerUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val lastScannedEan: String? = null,
+    val addedSuccessfully: Boolean = false,
 )
 
 @HiltViewModel
@@ -38,8 +40,8 @@ class BarcodeScannerViewModel @Inject constructor(
                 .onSuccess { food ->
                     _state.update { it.copy(scannedFood = food, isLoading = false) }
                 }
-                .onFailure { e ->
-                    _state.update { it.copy(error = "Produit non trouvé (${ean})", isLoading = false) }
+                .onFailure { _ ->
+                    _state.update { it.copy(error = "Produit non trouv\u00e9 ($ean)", isLoading = false) }
                 }
         }
     }
@@ -53,6 +55,20 @@ class BarcodeScannerViewModel @Inject constructor(
     }
 
     fun addToMeal() {
-        // TODO: call repository to add scannedFood with quantityG to meal
+        val food = _state.value.scannedFood ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                repository.addMealItem(
+                    date = java.time.LocalDate.now().toString(),
+                    mealType = MealType.SNACK,
+                    foodItemId = food.id,
+                    quantityG = _state.value.quantityG,
+                )
+                _state.update { it.copy(isLoading = false, addedSuccessfully = true) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = "Impossible d'ajouter : ${e.message}") }
+            }
+        }
     }
 }
