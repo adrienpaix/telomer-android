@@ -33,6 +33,8 @@ data class DashboardUiState(
     val recoveryScore: Int = 0,
     val strainScore: Double = 0.0,
     val sleepDebtHours: Double = 0.0,
+    val biologicalAge: Double? = null,
+    val chronologicalAge: Int? = null,
 )
 
 @HiltViewModel
@@ -77,6 +79,8 @@ class DashboardViewModel @Inject constructor(
                         unreadMessages = unread,
                         questionnaireStatus = null,
                         healthOSScore = health?.globalScore,
+                        biologicalAge = health?.biologicalAge,
+                        chronologicalAge = health?.chronologicalAge,
                     )
                     // Load Health Connect scores
                     loadHealthConnectScores()

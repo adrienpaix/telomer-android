@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,8 +18,10 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -222,12 +225,66 @@ private fun WhoopDashboard(
             .format(Instant.ofEpochSecond(epochSec.toLong()))
     }
 
+    // Sleep efficiency calculation
+    val bedtimeEpoch = lastSleep?.metadata?.get("bedtime_epoch")?.toLong()
+    val wakeEpoch = lastSleep?.metadata?.get("wake_epoch")?.toLong()
+    val timeInBedMin = if (bedtimeEpoch != null && wakeEpoch != null) {
+        ((wakeEpoch - bedtimeEpoch) / 60.0).roundToInt()
+    } else sleepMin // fallback
+    val sleepEfficiency = if (sleepMin > 0 && timeInBedMin > 0) {
+        ((sleepMin.toFloat() / timeInBedMin) * 100).roundToInt()
+    } else null
+
     val sleepScore = computeSleepScore(sleepMin, sleepDeep, sleepRem, sleepLight)
     val recoveryScore = computeRecoveryScore(hrResting, lastHRV?.value, lastSpO2?.value, sleepScore)
     val strainScore = computeStrainScore(steps, activeCals, exerciseMin, zoneMinutes)
     val sleepDebtHours = computeSleepDebt(sleepMin)
     val dateText = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.FRANCE))
         .replaceFirstChar { it.uppercase() }
+
+    // Yesterday metrics for trends
+    val yesterdaySteps = state.yesterdayMetrics[MetricType.STEPS]?.sumOf { it.value }?.roundToInt()
+    val yesterdayActiveCals = state.yesterdayMetrics[MetricType.ACTIVE_CALORIES]?.sumOf { it.value }?.roundToInt()
+    val yesterdayExerciseMin = state.yesterdayMetrics[MetricType.EXERCISE]?.sumOf { it.value }?.roundToInt()
+    val yesterdayHrResting = state.yesterdayMetrics[MetricType.RESTING_HEART_RATE]?.lastOrNull()?.value?.roundToInt()
+    val yesterdayHRV = state.yesterdayMetrics[MetricType.HRV]?.lastOrNull()?.value?.roundToInt()
+    val yesterdaySpO2 = state.yesterdayMetrics[MetricType.SPO2]?.lastOrNull()?.value?.let { String.format(Locale.FRANCE, "%.1f", it) }
+    val yesterdayWeight = state.yesterdayMetrics[MetricType.WEIGHT]?.lastOrNull()?.value?.let { String.format(Locale.FRANCE, "%.1f", it) }
+
+    // Build weekly strain/recovery for chart
+    val zone = ZoneId.systemDefault()
+    val today = LocalDate.now()
+    val allWeekMetrics = state.weekMetrics.values.flatten()
+    val allByDay = allWeekMetrics.groupBy { it.recordedAt.atZone(zone).toLocalDate() }
+        .mapValues { (_, metrics) -> metrics.groupBy { it.type } }
+
+    val strainWeek = (6 downTo 0).map { daysAgo ->
+        val date = today.minusDays(daysAgo.toLong())
+        val dayMetrics = allByDay[date] ?: emptyMap()
+        val s = dayMetrics[MetricType.STEPS]?.sumOf { it.value }?.toInt() ?: 0
+        val c = dayMetrics[MetricType.ACTIVE_CALORIES]?.sumOf { it.value }?.toInt() ?: 0
+        val e = dayMetrics[MetricType.EXERCISE]?.sumOf { it.value }?.toInt() ?: 0
+        val zMins = listOf(
+            MetricType.HEART_ZONE_1, MetricType.HEART_ZONE_2,
+            MetricType.HEART_ZONE_3, MetricType.HEART_ZONE_4, MetricType.HEART_ZONE_5,
+        ).map { zType -> dayMetrics[zType]?.sumOf { it.value }?.toInt() ?: 0 }
+        computeStrainScore(s, c, e, zMins)
+    }
+
+    val recoveryWeek = (6 downTo 0).map { daysAgo ->
+        val date = today.minusDays(daysAgo.toLong())
+        val dayMetrics = allByDay[date] ?: emptyMap()
+        val dayHrResting = dayMetrics[MetricType.RESTING_HEART_RATE]?.lastOrNull()?.value?.roundToInt()
+        val dayHRV = dayMetrics[MetricType.HRV]?.lastOrNull()?.value
+        val daySpO2 = dayMetrics[MetricType.SPO2]?.lastOrNull()?.value
+        val daySleepMin = dayMetrics[MetricType.SLEEP]?.sumOf { it.value }?.roundToInt() ?: 0
+        val daySleepData = dayMetrics[MetricType.SLEEP]?.lastOrNull()
+        val dayDeep = daySleepData?.metadata?.get("deep_minutes")?.roundToInt() ?: 0
+        val dayRem = daySleepData?.metadata?.get("rem_minutes")?.roundToInt() ?: 0
+        val dayLight = daySleepData?.metadata?.get("light_minutes")?.roundToInt() ?: 0
+        val daySleepScore = computeSleepScore(daySleepMin, dayDeep, dayRem, dayLight)
+        computeRecoveryScore(dayHrResting, dayHRV, daySpO2, daySleepScore)
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(WhoopDark),
@@ -242,6 +299,17 @@ private fun WhoopDashboard(
                 strainScore = strainScore,
                 sleepDebtHours = sleepDebtHours,
             )
+        }
+
+        // Strain/Recovery chart
+        if (strainWeek.any { it > 0.0 } || recoveryWeek.any { it > 0 }) {
+            item {
+                StrainRecoveryChart(
+                    strainWeek = strainWeek,
+                    recoveryWeek = recoveryWeek,
+                    labels = weekDayLabels(),
+                )
+            }
         }
 
         state.error?.let { error ->
@@ -261,7 +329,8 @@ private fun WhoopDashboard(
         item {
             val weightVal = lastWeight?.let { String.format(Locale.FRANCE, "%.1f", it.value) } ?: "\u2014"
             val weightTrend = computeWeightTrend(state.weekMetrics[MetricType.WEIGHT] ?: emptyList())
-            WhoopMetricCard(emoji = "\uD83D\uDCCA", label = "Poids", value = weightVal, unit = "kg", progress = 0f, progressColor = WhoopBlue, target = weightTrend)
+            WhoopMetricCard(emoji = "\uD83D\uDCCA", label = "Poids", value = weightVal, unit = "kg", progress = 0f, progressColor = WhoopBlue, target = weightTrend,
+                previousValue = yesterdayWeight, currentNumeric = lastWeight?.value, previousNumeric = state.yesterdayMetrics[MetricType.WEIGHT]?.lastOrNull()?.value, higherIsBetter = false)
         }
         item {
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -292,6 +361,10 @@ private fun WhoopDashboard(
                 target = "/ 10 000",
                 status = stepsStatus(steps),
                 statusColor = stepsStatusColor(steps),
+                previousValue = yesterdaySteps?.let { formatFrench(it) },
+                currentNumeric = steps.toDouble(),
+                previousNumeric = yesterdaySteps?.toDouble(),
+                higherIsBetter = true,
             )
         }
         item {
@@ -323,6 +396,28 @@ private fun WhoopDashboard(
         if (sleepLight + sleepDeep + sleepRem > 0) {
             item { SleepStagesCard(lightMin = sleepLight, deepMin = sleepDeep, remMin = sleepRem, bedtime = sleepBedtime, wakeTime = sleepWakeTime) }
         }
+        // Sleep efficiency + debt in h:min
+        item {
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                WhoopSmallMetricCard(
+                    label = "Efficacité",
+                    value = sleepEfficiency?.let { "$it" } ?: "\u2014",
+                    unit = "%",
+                    color = WhoopPurple,
+                    modifier = Modifier.weight(1f),
+                )
+                val debtH = sleepDebtHours.toInt()
+                val debtM = ((sleepDebtHours - debtH) * 60).roundToInt()
+                val debtFormatted = "${debtH}h${String.format("%02d", debtM)}"
+                WhoopSmallMetricCard(
+                    label = "Dette sommeil",
+                    value = if (sleepDebtHours > 0.0) debtFormatted else "0h00",
+                    unit = "",
+                    color = if (sleepDebtHours > 2.0) WhoopRed else WhoopOrange,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
 
         // Cardiovasculaire
         item { WhoopCategoryHeader(emoji = "\u2764\uFE0F", title = "Cardiovasculaire", color = WhoopCyan) }
@@ -336,6 +431,10 @@ private fun WhoopDashboard(
                 progressColor = WhoopRed,
                 status = hrResting?.let { hrRestingStatus(it) },
                 statusColor = hrResting?.let { hrRestingStatusColor(it) },
+                previousValue = yesterdayHrResting?.let { it.toString() },
+                currentNumeric = hrResting?.toDouble(),
+                previousNumeric = yesterdayHrResting?.toDouble(),
+                higherIsBetter = false,
             )
         }
         item {
@@ -366,6 +465,112 @@ private fun WhoopDashboard(
             SyncButton(isSyncing = state.isSyncing, lastSyncEpoch = state.lastSyncEpoch, syncResult = state.syncResult, backendSyncCount = state.backendSyncCount, backendSyncError = state.backendSyncError, onSync = onSync)
         }
         item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  STRAIN / RECOVERY CHART (7 days dual-axis)
+// ══════════════════════════════════════════════════════════════════
+
+@Composable
+private fun StrainRecoveryChart(
+    strainWeek: List<Double>,
+    recoveryWeek: List<Int>,
+    labels: List<String>,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = WhoopCardBg),
+        border = BorderStroke(1.dp, WhoopCardBorder),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Effort / Récupération — 7 jours",
+                style = MaterialTheme.typography.titleSmall,
+                color = WhoopTextPrimary,
+            )
+            Spacer(Modifier.height(12.dp))
+            Canvas(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+                val barCount = strainWeek.size
+                if (barCount == 0) return@Canvas
+                val barWidth = size.width / (barCount * 2.5f)
+                val spacing = size.width / barCount
+                val maxStrain = 21.0
+                val maxRecovery = 100
+
+                // Draw strain bars (orange)
+                strainWeek.forEachIndexed { i, strain ->
+                    val barHeight = (strain / maxStrain * size.height * 0.85f).toFloat()
+                    val x = i * spacing + spacing / 2 - barWidth / 2
+                    val y = size.height - barHeight
+                    drawRoundRect(
+                        color = WhoopOrange.copy(alpha = 0.8f),
+                        topLeft = Offset(x, y),
+                        size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f, 6f),
+                    )
+                }
+
+                // Draw recovery line (green) with points
+                val recoveryPoints = recoveryWeek.mapIndexed { i, rec ->
+                    val x = i * spacing + spacing / 2
+                    val y = size.height - (rec.toFloat() / maxRecovery * size.height * 0.85f)
+                    Offset(x, y)
+                }
+
+                // Draw line
+                for (i in 1 until recoveryPoints.size) {
+                    drawLine(
+                        color = WhoopGreen,
+                        start = recoveryPoints[i - 1],
+                        end = recoveryPoints[i],
+                        strokeWidth = 2.5.dp.toPx(),
+                        cap = StrokeCap.Round,
+                    )
+                }
+
+                // Draw dots
+                recoveryPoints.forEach { point ->
+                    drawCircle(
+                        color = WhoopGreen.copy(alpha = 0.3f),
+                        radius = 6.dp.toPx(),
+                        center = point,
+                    )
+                    drawCircle(
+                        color = WhoopGreen,
+                        radius = 4.dp.toPx(),
+                        center = point,
+                    )
+                    drawCircle(
+                        color = WhoopCardBg,
+                        radius = 2.dp.toPx(),
+                        center = point,
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            // Day labels
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                labels.forEach { l ->
+                    Text(l, fontSize = 10.sp, color = WhoopTextSecondary, textAlign = TextAlign.Center)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            // Legend
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(8.dp).background(WhoopOrange, CircleShape))
+                Spacer(Modifier.width(4.dp))
+                Text("Effort", color = WhoopTextSecondary, style = MaterialTheme.typography.labelSmall)
+                Spacer(Modifier.width(16.dp))
+                Box(Modifier.size(8.dp).background(WhoopGreen, CircleShape))
+                Spacer(Modifier.width(4.dp))
+                Text("Récupération", color = WhoopTextSecondary, style = MaterialTheme.typography.labelSmall)
+            }
+        }
     }
 }
 
@@ -406,13 +611,16 @@ private fun DashboardHeader(
                 GlowScoreCircleHC(score = recoveryScore, label = "\uD83D\uDC9A Récupération", color = WhoopGreen, size = 100)
                 GlowStrainCircleHC(strain = strainScore, size = 100)
             }
-            // Dette de sommeil
+            // Dette de sommeil (formatted h:min)
             if (sleepDebtHours > 0.0) {
                 Spacer(Modifier.height(12.dp))
+                val debtH = sleepDebtHours.toInt()
+                val debtM = ((sleepDebtHours - debtH) * 60).roundToInt()
+                val debtFormatted = "${debtH}h${String.format("%02d", debtM)}"
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("\uD83D\uDCA4 ", fontSize = 16.sp)
                     Text(
-                        "Dette : " + String.format("%.1f", sleepDebtHours) + "h",
+                        "Dette : $debtFormatted",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = if (sleepDebtHours > 2.0) WhoopRed else WhoopOrange,
@@ -511,7 +719,7 @@ private fun GlowStrainCircleHC(
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  WHOOP-STYLE METRIC CARDS
+//  WHOOP-STYLE METRIC CARDS (with trend support)
 // ══════════════════════════════════════════════════════════════════
 
 @Composable
@@ -525,6 +733,10 @@ private fun WhoopMetricCard(
     statusColor: Color? = null,
     progress: Float = 0f,
     progressColor: Color = WhoopBlue,
+    previousValue: String? = null,
+    currentNumeric: Double? = null,
+    previousNumeric: Double? = null,
+    higherIsBetter: Boolean = true,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -547,9 +759,39 @@ private fun WhoopMetricCard(
                     Spacer(Modifier.width(4.dp))
                     Text(unit, style = MaterialTheme.typography.bodyMedium, color = WhoopTextSecondary, modifier = Modifier.padding(bottom = 4.dp))
                 }
-                target?.let {
+                // Trend indicator (J-1)
+                if (previousValue != null && currentNumeric != null && previousNumeric != null) {
+                    Spacer(Modifier.width(8.dp))
+                    val isHigher = currentNumeric > previousNumeric
+                    val isEqual = currentNumeric == previousNumeric
+                    val arrow = when {
+                        isEqual -> "→"
+                        isHigher -> "↑"
+                        else -> "↓"
+                    }
+                    val isImprovement = when {
+                        isEqual -> true
+                        higherIsBetter -> isHigher
+                        else -> !isHigher
+                    }
+                    val arrowColor = if (isImprovement) WhoopGreen else WhoopRed
+                    Text(
+                        "$arrow $previousValue",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = arrowColor,
+                        modifier = Modifier.padding(bottom = 6.dp),
+                    )
+                }
+                if (previousValue == null) {
+                    target?.let {
+                        Spacer(Modifier.weight(1f))
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = WhoopTextSecondary)
+                    }
+                } else {
                     Spacer(Modifier.weight(1f))
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = WhoopTextSecondary)
+                    target?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = WhoopTextSecondary)
+                    }
                 }
             }
             if (progress > 0f) {

@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 
 data class HealthConnectUiState(
@@ -22,6 +24,7 @@ data class HealthConnectUiState(
     val permissionsGranted: Boolean = false,
     val todayMetrics: Map<MetricType, List<HealthMetric>> = emptyMap(),
     val weekMetrics: Map<MetricType, List<HealthMetric>> = emptyMap(),
+    val yesterdayMetrics: Map<MetricType, List<HealthMetric>> = emptyMap(),
     val isSyncing: Boolean = false,
     val lastSyncEpoch: Long? = null,
     val syncResult: SyncResult? = null,
@@ -81,10 +84,19 @@ class HealthConnectViewModel @Inject constructor(
                 val today = manager.readToday(age)
                 val week = manager.readLastDays(7, age)
                 val lastSync = sync.getLastSyncEpoch()
+
+                // Filter yesterday's metrics from week data
+                val yesterday = LocalDate.now().minusDays(1)
+                val zone = ZoneId.systemDefault()
+                val yesterdayMetrics = week.filter {
+                    it.recordedAt.atZone(zone).toLocalDate() == yesterday
+                }.groupBy { it.type }
+
                 _state.update {
                     it.copy(
                         todayMetrics = today.groupBy { m -> m.type },
                         weekMetrics = week.groupBy { m -> m.type },
+                        yesterdayMetrics = yesterdayMetrics,
                         lastSyncEpoch = lastSync,
                         error = null,
                     )

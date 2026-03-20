@@ -1,5 +1,6 @@
 package health.telomer.android.feature.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,6 +32,7 @@ import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,9 +134,12 @@ fun DashboardScreen(
                                 )
                             }
 
-                            // Dette de sommeil
+                            // Dette de sommeil (formatted h:min)
                             if (state.sleepDebtHours > 0.0) {
                                 Spacer(Modifier.height(16.dp))
+                                val debtH = state.sleepDebtHours.toInt()
+                                val debtM = ((state.sleepDebtHours - debtH) * 60).roundToInt()
+                                val debtFormatted = "${debtH}h${String.format("%02d", debtM)}"
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.Center,
@@ -142,7 +147,7 @@ fun DashboardScreen(
                                 ) {
                                     Text("\uD83D\uDCA4 ", fontSize = 16.sp)
                                     Text(
-                                        "Dette : " + String.format("%.1f", state.sleepDebtHours) + "h",
+                                        "Dette : $debtFormatted",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = if (state.sleepDebtHours > 2.0) WhoopRed else WhoopOrange,
@@ -150,6 +155,12 @@ fun DashboardScreen(
                                 }
                             }
                         }
+
+                        // Telomer Age Card (hero blob style)
+                        TelomerAgeCard(
+                            biologicalAge = state.biologicalAge,
+                            chronologicalAge = state.chronologicalAge,
+                        )
 
                         Spacer(Modifier.height(20.dp))
 
@@ -334,6 +345,86 @@ fun DashboardScreen(
                     Spacer(Modifier.height(32.dp))
                 }
             }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TELOMER AGE CARD (hero blob style)
+// ══════════════════════════════════════════════════════════════════
+
+@Composable
+private fun TelomerAgeCard(
+    biologicalAge: Double?,
+    chronologicalAge: Int?,
+) {
+    if (biologicalAge == null || chronologicalAge == null) return
+
+    val ageDiff = chronologicalAge - biologicalAge // positif = plus jeune
+    val rate = if (chronologicalAge > 0) biologicalAge / chronologicalAge else 1.0
+
+    Spacer(Modifier.height(16.dp))
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = WhoopCardBg),
+        border = BorderStroke(1.dp, WhoopCardBorder),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // Score circle with green glow
+            Box(contentAlignment = Alignment.Center) {
+                Canvas(modifier = Modifier.size(100.dp)) {
+                    // Glow circle vert
+                    drawCircle(
+                        color = WhoopGreen.copy(alpha = 0.15f),
+                        radius = size.minDimension / 2,
+                    )
+                    drawCircle(
+                        color = WhoopGreen.copy(alpha = 0.08f),
+                        radius = size.minDimension / 2 + 10.dp.toPx(),
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        String.format("%.1f", biologicalAge),
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = WhoopGreen,
+                    )
+                    Text(
+                        "ans biologiques",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = WhoopTextSecondary,
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // "X ans de moins" or "X ans de plus"
+            val diffText = if (ageDiff >= 0) {
+                "${String.format("%.1f", ageDiff)} ans de moins"
+            } else {
+                "${String.format("%.1f", -ageDiff)} ans de plus"
+            }
+            val diffColor = if (ageDiff >= 0) WhoopGreen else WhoopRed
+
+            Text(
+                diffText,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = diffColor,
+            )
+
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Rythme de vieillissement : ${String.format("%.1f", rate)}x",
+                style = MaterialTheme.typography.bodySmall,
+                color = WhoopTextSecondary,
+            )
         }
     }
 }
