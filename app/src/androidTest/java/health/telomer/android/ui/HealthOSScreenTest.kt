@@ -27,14 +27,14 @@ class HealthOSScreenTest {
                     isLoading -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
-                            Text(Chargementu2026)
+                            Text("Chargement...")
                         }
                     }
                     score != null -> {
-                        Text(Score de santu00e9 : )
+                        Text("Score : $score")
                     }
                     else -> {
-                        Text(Aucun score disponible)
+                        Text("Aucun score disponible")
                     }
                 }
             }
@@ -46,7 +46,7 @@ class HealthOSScreenTest {
         composeTestRule.setContent {
             FakeHealthOSScreen(score = 72, isLoading = false)
         }
-        composeTestRule.onNodeWithText(Score de santu00e9 : 72).assertExists()
+        composeTestRule.onNodeWithText("Score : 72").assertExists()
     }
 
     @Test
@@ -54,7 +54,7 @@ class HealthOSScreenTest {
         composeTestRule.setContent {
             FakeHealthOSScreen(score = null, isLoading = true)
         }
-        composeTestRule.onNodeWithText(Chargementu2026).assertExists()
+        composeTestRule.onNodeWithText("Chargement...").assertExists()
     }
 
     @Test
@@ -62,6 +62,6 @@ class HealthOSScreenTest {
         composeTestRule.setContent {
             FakeHealthOSScreen(score = null, isLoading = false)
         }
-        composeTestRule.onNodeWithText(Aucun score disponible).assertExists()
+        composeTestRule.onNodeWithText("Aucun score disponible").assertExists()
     }
 }
