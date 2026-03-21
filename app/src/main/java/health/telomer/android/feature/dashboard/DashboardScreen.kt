@@ -110,9 +110,9 @@ fun DashboardScreen(
                         Spacer(Modifier.height(4.dp))
                         Text(today, style = MaterialTheme.typography.bodyMedium, color = WhoopTextSecondary)
 
-                        // 3 Glow Score Circles
+                        // 3 Glow Score Circles — always visible
+                        Spacer(Modifier.height(24.dp))
                         if (state.sleepScore > 0 || state.recoveryScore > 0 || state.strainScore > 0.0) {
-                            Spacer(Modifier.height(24.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -122,15 +122,18 @@ fun DashboardScreen(
                                     label = "Sommeil",
                                     emoji = "\uD83D\uDE34",
                                     color = WhoopPurple,
+                                    modifier = Modifier.clickable { navController.navigate("healthconnect") },
                                 )
                                 GlowScoreCircle(
                                     score = state.recoveryScore,
                                     label = "Récup.",
                                     emoji = "\uD83D\uDC9A",
                                     color = WhoopGreen,
+                                    modifier = Modifier.clickable { navController.navigate("healthconnect") },
                                 )
                                 GlowStrainCircle(
                                     strain = state.strainScore,
+                                    modifier = Modifier.clickable { navController.navigate("healthconnect") },
                                 )
                             }
 
@@ -154,12 +157,28 @@ fun DashboardScreen(
                                     )
                                 }
                             }
+                        } else {
+                            // Empty state — Health Connect not connected
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                ) {
+                                    EmptyScoreCircle(label = "Sommeil", emoji = "\uD83D\uDE34", color = WhoopPurple, modifier = Modifier.clickable { navController.navigate("healthconnect") })
+                                    EmptyScoreCircle(label = "Récupération", emoji = "\uD83D\uDC9A", color = WhoopGreen, modifier = Modifier.clickable { navController.navigate("healthconnect") })
+                                    EmptyScoreCircle(label = "Effort", emoji = "\uD83D\uDD25", color = WhoopOrange, modifier = Modifier.clickable { navController.navigate("healthconnect") })
+                                }
+                                TextButton(onClick = { navController.navigate("healthconnect") }) {
+                                    Text("Connecter Health Connect \u2192", color = WhoopBlue)
+                                }
+                            }
                         }
 
-                        // Telomer Age Card (hero blob style)
+                        // Telomer Age Card (hero blob style) — clickable → HealthOS
                         TelomerAgeCard(
                             biologicalAge = state.biologicalAge,
                             chronologicalAge = state.chronologicalAge,
+                            modifier = Modifier.clickable { navController.navigate("healthos") },
                         )
 
                         Spacer(Modifier.height(20.dp))
@@ -357,6 +376,7 @@ fun DashboardScreen(
 private fun TelomerAgeCard(
     biologicalAge: Double?,
     chronologicalAge: Int?,
+    modifier: Modifier = Modifier,
 ) {
     if (biologicalAge == null || chronologicalAge == null) return
 
@@ -366,7 +386,7 @@ private fun TelomerAgeCard(
     Spacer(Modifier.height(16.dp))
 
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 0.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = WhoopCardBg),
         border = BorderStroke(1.dp, WhoopCardBorder),
@@ -426,6 +446,26 @@ private fun TelomerAgeCard(
                 color = WhoopTextSecondary,
             )
         }
+    }
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+//  EMPTY SCORE CIRCLE (Health Connect not connected)
+// ══════════════════════════════════════════════════════════════════
+
+@Composable
+private fun EmptyScoreCircle(label: String, emoji: String, color: Color, modifier: Modifier = Modifier) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
+        Box(contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.size(80.dp)) {
+                val stroke = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
+                drawArc(color = WhoopCardBorder, startAngle = 135f, sweepAngle = 270f, useCenter = false, style = stroke)
+            }
+            Text("?", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = WhoopTextSecondary)
+        }
+        Spacer(Modifier.height(6.dp))
+        Text("$emoji $label", style = MaterialTheme.typography.labelSmall, color = color)
     }
 }
 

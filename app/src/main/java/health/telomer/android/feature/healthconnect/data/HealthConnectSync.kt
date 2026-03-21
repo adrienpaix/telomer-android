@@ -57,17 +57,21 @@ class HealthConnectSync @Inject constructor(
         if (metrics.isEmpty()) return SyncResult(0, 0)
 
         var totalSynced = 0
-        var totalDuplicates = 0
-
         metrics.chunked(BATCH_SIZE).forEach { batch ->
-            val payload = batch.map { it.toPayload() }
-            val resp = api.syncMetrics(MetricsSyncRequest(payload))
-            totalSynced += resp.synced
-            totalDuplicates += resp.duplicates
+            val items = batch.map { m ->
+                HealthMetricItem(
+                    metric_type = m.type.apiName,
+                    value = m.value,
+                    unit = m.unit,
+                    recorded_at = ISO.format(m.recordedAt.atOffset(ZoneOffset.UTC)),
+                )
+            }
+            telomerApi.bulkHealthMetrics(BulkMetricsPayload(items))
+            totalSynced += items.size
         }
 
         setLastSyncEpoch(Instant.now().epochSecond)
-        return SyncResult(totalSynced, totalDuplicates)
+        return SyncResult(totalSynced, 0)
     }
 
     /**

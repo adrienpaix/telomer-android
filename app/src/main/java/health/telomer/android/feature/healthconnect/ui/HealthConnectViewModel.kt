@@ -112,26 +112,16 @@ class HealthConnectViewModel @Inject constructor(
             _state.update { it.copy(isSyncing = true, error = null, backendSyncCount = null, backendSyncError = null) }
             try {
                 val result = sync.sync(days = 7, userAge = _state.value.userAge)
-                // Also sync to new backend bulk endpoint POST /me/health-metrics/bulk
-                val backendCount = try {
-                    sync.syncToBackend(userAge = _state.value.userAge)
-                } catch (e: Exception) {
-                    _state.update { it.copy(backendSyncError = "Backend: ${e.message}") }
-                    -1
-                }
+                loadData() // refresh metrics after sync
                 _state.update {
                     it.copy(
                         isSyncing = false,
                         syncResult = result,
-                        lastSyncEpoch = Instant.now().epochSecond,
-                        backendSyncCount = if (backendCount >= 0) backendCount else null,
+                        backendSyncCount = result.synced,
                     )
                 }
-                loadData()
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(isSyncing = false, error = "Erreur de sync : ${e.message}")
-                }
+                _state.update { it.copy(isSyncing = false, error = "Erreur de synchronisation : ${e.localizedMessage}") }
             }
         }
     }
