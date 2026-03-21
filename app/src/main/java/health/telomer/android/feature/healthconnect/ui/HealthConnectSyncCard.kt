@@ -64,6 +64,12 @@ internal fun SyncButton(
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
             )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Synchronisation automatique toutes les 24h",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary,
+            )
         }
         syncResult?.let { r ->
             Spacer(Modifier.height(4.dp))

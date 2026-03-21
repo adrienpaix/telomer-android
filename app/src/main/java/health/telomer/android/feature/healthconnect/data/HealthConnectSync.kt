@@ -75,12 +75,12 @@ class HealthConnectSync @Inject constructor(
     }
 
     /**
-     * Auto-sync: sync the last 24 h if last sync was more than 1 h ago (or never).
+     * Auto-sync: sync the last 24 h if last sync was more than 24 h ago (or never).
      */
     suspend fun autoSyncIfNeeded(userAge: Int = HealthConnectManager.DEFAULT_AGE): SyncResult? {
         val lastEpoch = getLastSyncEpoch()
-        val oneHourAgo = Instant.now().epochSecond - 3600
-        if (lastEpoch != null && lastEpoch > oneHourAgo) return null
+        val oneDayAgo = Instant.now().epochSecond - 86400
+        if (lastEpoch != null && lastEpoch > oneDayAgo) return null
         return sync(days = 1, userAge = userAge)
     }
 

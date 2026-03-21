@@ -109,6 +109,11 @@ dependencies {
     // Health Connect
     implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
 
+    // WorkManager (periodic sync)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")
+
     // Browser (Chrome Custom Tabs)
     implementation("androidx.browser:browser:1.8.0")
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
