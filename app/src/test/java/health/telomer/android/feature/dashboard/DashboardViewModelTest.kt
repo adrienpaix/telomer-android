@@ -5,6 +5,7 @@ import health.telomer.android.core.data.api.models.ConversationResponse
 import health.telomer.android.core.data.api.models.PatientProfile
 import health.telomer.android.core.data.api.models.HealthOSDashboardResponse
 import health.telomer.android.feature.dashboard.data.DashboardRepository
+import health.telomer.android.feature.healthconnect.data.HealthConnectManager
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,7 @@ class DashboardViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: DashboardRepository
+    private lateinit var healthConnectManager: HealthConnectManager
     private lateinit var viewModel: DashboardViewModel
 
     private val fakeProfile = PatientProfile(
@@ -44,6 +46,7 @@ class DashboardViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         repository = mockk(relaxed = true)
+        healthConnectManager = mockk(relaxed = true)
     }
 
     @After
@@ -58,7 +61,7 @@ class DashboardViewModelTest {
         coEvery { repository.getConversations() } returns emptyList()
         coEvery { repository.getHealthOSDashboard() } returns fakeDashboard
 
-        viewModel = DashboardViewModel(repository)
+        viewModel = DashboardViewModel(repository, healthConnectManager)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -72,7 +75,7 @@ class DashboardViewModelTest {
     fun `loadDashboard failure - erreur affichee`() = runTest {
         coEvery { repository.getProfile() } throws RuntimeException("Serveur indisponible")
 
-        viewModel = DashboardViewModel(repository)
+        viewModel = DashboardViewModel(repository, healthConnectManager)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -91,7 +94,7 @@ class DashboardViewModelTest {
         )
         coEvery { repository.getHealthOSDashboard() } returns null
 
-        viewModel = DashboardViewModel(repository)
+        viewModel = DashboardViewModel(repository, healthConnectManager)
         advanceUntilIdle()
 
         assertEquals(8, viewModel.uiState.value.unreadMessages)
@@ -108,7 +111,7 @@ class DashboardViewModelTest {
         coEvery { repository.getConversations() } returns emptyList()
         coEvery { repository.getHealthOSDashboard() } returns null
 
-        viewModel = DashboardViewModel(repository)
+        viewModel = DashboardViewModel(repository, healthConnectManager)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -125,7 +128,7 @@ class DashboardViewModelTest {
         coEvery { repository.getConversations() } returns emptyList()
         coEvery { repository.getHealthOSDashboard() } returns null
 
-        viewModel = DashboardViewModel(repository)
+        viewModel = DashboardViewModel(repository, healthConnectManager)
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.nextAppointment)
@@ -138,7 +141,7 @@ class DashboardViewModelTest {
         coEvery { repository.getConversations() } returns emptyList()
         coEvery { repository.getHealthOSDashboard() } returns null
 
-        viewModel = DashboardViewModel(repository)
+        viewModel = DashboardViewModel(repository, healthConnectManager)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
